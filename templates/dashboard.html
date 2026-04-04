@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Welkom op je Dashboard</h2>
+        <hr>
+        {% if current_user.role == 'BO' %}
+            <a href="#" class="btn btn-success btn-lg">Nieuwe Bestelbon Aanmaken</a>
+        {% endif %}
+        
+        {% if current_user.role == 'Admin' %}
+            <div class="alert alert-warning">U bent ingelogd als Beheerder. Hier kunt u instellingen wijzigen.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
