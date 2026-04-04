@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="nl">
 <head>
-    <title>Login - Bestelsysteem</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inloggen - Bestelsysteem</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
 <body class="bg-light">
@@ -10,11 +12,23 @@
             <div class="col-md-4">
                 <div class="card shadow">
                     <div class="card-body">
-                        <h3 class="card-title text-center">Inloggen</h3>
+                        <h3 class="card-title text-center mb-4">Inloggen</h3>
+
+                        {% with messages = get_flashed_messages() %}
+                          {% if messages %}
+                            {% for message in messages %}
+                              <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>
+                            {% endfor %}
+                          {% endif %}
+                        {% endwith %}
+
                         <form method="POST">
                             <div class="mb-3">
                                 <label class="form-label">Gebruikersnaam</label>
-                                <input type="text" name="username" class="form-control" required>
+                                <input type="text" name="username" class="form-control" autofocus required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Wachtwoord</label>
@@ -27,5 +41,7 @@
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
