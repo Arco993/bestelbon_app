@@ -1,10 +1,11 @@
-from flask import Flask, render_template, redirect, url_for, request, flash
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from models import db, User, Order, OrderLine, Supplier, Setting
+import uuid
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bestelbonnen.db'
-app.config['SECRET_KEY'] = 'jouw_geheime_sleutel_hier'
+app.config['SECRET_KEY'] = 'supergeheim'
 
 db.init_app(app)
 login_manager = LoginManager(app)
@@ -21,16 +22,11 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        user = User.query.filter_by(username=username).first()
-        
-        if user and user.password == password:
+        user = User.query.filter_by(username=request.form.get('username')).first()
+        if user and user.password == request.form.get('password'):
             login_user(user)
             return redirect(url_for('dashboard'))
-        else:
-            flash('Oeps! Die combinatie van naam en wachtwoord klopt niet.')
-            
+        flash('Ongeldige inloggegevens.', 'danger')
     return render_template('login.html')
 
 @app.route('/dashboard')
@@ -42,8 +38,95 @@ def dashboard():
 @login_required
 def logout():
     logout_user()
-    flash('Je bent nu veilig uitgelogd.')
     return redirect(url_for('login'))
+
+# --- ORDER ROUTES ---
+
+@app.route('/order/new', methods=['GET', 'POST'])
+@login_required
+def new_order():
+    if request.method == 'POST':
+        s_name = request.form.get('supplier_name')
+        supplier = Supplier.query.filter_by(name=s_name).first()
+        if not supplier:
+            supplier = Supplier(
+                name=s_name, street=request.form.get('street'),
+                house_number=request.form.get('house_number'), zip_code=request.form.get('zip_code'),
+                city=request.form.get('city'), country=request.form.get('country'),
+                vat_number=request.form.get('supplier_vat')
+            )
+            db.session.add(supplier)
+            db.session.flush()
+
+        new_bon = Order(
+            order_number=str(uuid.uuid4())[:8].upper(),
+            reference=request.form.get('reference'),
+            user_id=current_user.id,
+            supplier_id=supplier.id
+        )
+        db.session.add(new_bon)
+        db.session.flush()
+
+        descs, qtys, prices, taxes = request.form.getlist('desc[]'), request.form.getlist('qty[]'), request.form.getlist('price[]'), request.form.getlist('tax[]')
+        total_inc = 0
+        for i in range(len(descs)):
+            q, p, t = float(qtys[i]), float(prices[i]), float(taxes[i])
+            total_inc += (q * p) * (1 + (t/100))
+            line = OrderLine(order_id=new_bon.id, description=descs[i], quantity=q, unit_price=p, tax_rate=t)
+            db.session.add(line)
+
+        new_bon.total_amount = total_inc
+        db.session.commit()
+        flash(f'Bestelbon {new_bon.order_number} ingediend!', 'success')
+        return redirect(url_for('dashboard'))
+    return render_template('new_order.html')
+
+@app.route('/search_supplier')
+@login_required
+def search_supplier():
+    q = request.args.get('q', '').lower()
+    suppliers = Supplier.query.filter(Supplier.name.ilike(f'%{q}%')).limit(5).all()
+    return jsonify([{'name': s.name, 'street': s.street, 'num': s.house_number, 'zip': s.zip_code, 'city': s.city, 'country': s.country, 'vat': s.vat_number} for s in suppliers])
+
+# --- ADMIN ROUTES ---
+
+@app.route('/setup')
+@login_required
+def setup():
+    if current_user.role != 'Admin': return redirect(url_for('dashboard'))
+    users = User.query.all()
+    approvers = User.query.filter(User.role.in_(['BO', 'Directie', 'Admin'])).all()
+    return render_template('setup.html', users=users, approvers=approvers)
+
+@app.route('/add_user', methods=['POST'])
+@login_required
+def add_user():
+    if current_user.role != 'Admin': return redirect(url_for('dashboard'))
+    new_user = User(
+        username=request.form.get('username'), email=request.form.get('email'),
+        password=request.form.get('password'), role=request.form.get('role'),
+        department=request.form.get('department'),
+        min_attachment_limit=float(request.form.get('min_attachment_limit', 500)),
+        max_bo_limit=float(request.form.get('max_bo_limit', 1000)),
+        approver_id=request.form.get('approver_id') if request.form.get('approver_id') else None
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    flash('Gebruiker toegevoegd', 'success')
+    return redirect(url_for('setup'))
+
+@app.route('/edit_user/<int:id>', methods=['POST'])
+@login_required
+def edit_user(id):
+    if current_user.role != 'Admin': return redirect(url_for('dashboard'))
+    user = User.query.get_or_404(id)
+    user.username, user.email, user.role, user.department = request.form.get('username'), request.form.get('email'), request.form.get('role'), request.form.get('department')
+    user.min_attachment_limit, user.max_bo_limit = float(request.form.get('min_attachment_limit')), float(request.form.get('max_bo_limit'))
+    user.approver_id = request.form.get('approver_id') if request.form.get('approver_id') else None
+    if request.form.get('password'): user.password = request.form.get('password')
+    db.session.commit()
+    flash('Gebruiker bijgewerkt', 'success')
+    return redirect(url_for('setup'))
 
 if __name__ == '__main__':
     app.run(debug=True)
