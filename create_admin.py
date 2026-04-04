@@ -1,34 +1,39 @@
 from app import app, db
-from models import User, Setting
+from models import User
 
-with app.app_context():
-    # STAP 1: Maak de tabellen aan (als ze nog niet bestaan)
-    print("Tabellen aanmaken...")
-    db.create_all()
-    
-    # STAP 2: Controleer of de admin al bestaat
-    admin_user = User.query.filter_by(username='admin').first()
-    
-    if not admin_user:
-        print("Admin niet gevonden, bezig met aanmaken...")
-        # We maken de beheerder aan
+def reset_and_create_admin():
+    with app.app_context():
+        print("Bezig met het opschonen van de database...")
+        # Verwijder alle oude tabellen om plaats te maken voor de nieuwe structuur
+        db.drop_all()
+        
+        print("Bezig met het aanmaken van nieuwe tabellen...")
+        # Maak alle tabellen opnieuw aan op basis van de nieuwste models.py
+        db.create_all()
+
+        print("Bezig met het aanmaken van het Admin-account...")
+        # Maak de hoofd-admin aan
+        # Let op: 'department_code' is nu verplicht voor de slimme referenties!
         admin = User(
             username='admin', 
-            email="admin@jouwbedrijf.be",
-            password='password123', 
-            role='Admin',
-            min_attachment_limit=500.0,
+            email='admin@bedrijf.be',
+            password='adminpassword',  # Verander dit naar je eigen gewenste wachtwoord
+            role='Admin', 
+            department='Administratie',
+            department_code='ADM',      # Cruciaal voor de bon-referenties (bijv. ADM-2026-XXXX)
+            min_attachment_limit=500.0, 
             max_bo_limit=1000.0
         )
         
         db.session.add(admin)
-        
-        # Ook meteen de standaard instelling aanmaken
-        if not Setting.query.first():
-            new_setting = Setting(global_attachment_limit=500.0)
-            db.session.add(new_setting)
-            
         db.session.commit()
-        print("Systeem succesvol geïnitialiseerd!")
-    else:
-        print("Systeem was al geïnitialiseerd. Admin bestaat al.")
+        
+        print("-------------------------------------------------")
+        print("SUCCES: Database is gereset en Admin is aangemaakt!")
+        print(f"Gebruikersnaam: {admin.username}")
+        print(f"Wachtwoord: adminpassword")
+        print(f"Afdelingscode: {admin.department_code}")
+        print("-------------------------------------------------")
+
+if __name__ == '__main__':
+    reset_and_create_admin()

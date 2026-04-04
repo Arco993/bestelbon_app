@@ -1,79 +1,53 @@
 {% extends "base.html" %}
-
 {% block content %}
 <div class="container pb-5">
-    <h2 class="mb-4">Nieuwe Bestelbon</h2>
+    <h2>Nieuwe Bestelbon</h2>
     <form method="POST">
         <div class="card shadow-sm mb-4">
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3 position-relative">
-                        <label class="form-label fw-bold">Leverancier (Naam)</label>
+                <div class="row mb-3">
+                    <div class="col-md-6 position-relative">
+                        <label class="fw-bold">Leverancier</label>
                         <input type="text" name="supplier_name" id="supplierInput" class="form-control" required autocomplete="off">
-                        <div id="supplierResults" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index:1000;"></div>
+                        <div id="supplierResults" class="list-group position-absolute w-100 shadow d-none" style="z-index:1000;"></div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Project / Referentie</label>
-                        <input type="text" name="reference" class="form-control">
+                    <div class="col-md-6">
+                        <label class="fw-bold">Eigen Referentie (Project)</label>
+                        <input type="text" name="reference" class="form-control" placeholder="Bijv: Nieuwbouw kantoor">
                     </div>
-                </div>
-
-                <div class="row g-2 mb-3">
-                    <div class="col-md-4"><label class="small">Straat</label><input type="text" name="street" id="s_street" class="form-control form-control-sm"></div>
-                    <div class="col-md-2"><label class="small">Nr.</label><input type="text" name="house_number" id="s_num" class="form-control form-control-sm"></div>
-                    <div class="col-md-2"><label class="small">Postcode</label><input type="text" name="zip_code" id="s_zip" class="form-control form-control-sm"></div>
-                    <div class="col-md-4"><label class="small">Gemeente</label><input type="text" name="city" id="s_city" class="form-control form-control-sm"></div>
                 </div>
                 <div class="row g-2 mb-3">
-                    <div class="col-md-6"><label class="small">Land</label><input type="text" name="country" id="s_country" class="form-control form-control-sm" value="België"></div>
-                    <div class="col-md-6"><label class="small">BTW-nummer</label><input type="text" name="supplier_vat" id="s_vat" class="form-control form-control-sm"></div>
+                    <div class="col-md-4"><input type="text" name="street" id="s_street" class="form-control form-control-sm" placeholder="Straat"></div>
+                    <div class="col-md-2"><input type="text" name="house_number" id="s_num" class="form-control form-control-sm" placeholder="Nr."></div>
+                    <div class="col-md-2"><input type="text" name="zip_code" id="s_zip" class="form-control form-control-sm" placeholder="Postcode"></div>
+                    <div class="col-md-4"><input type="text" name="city" id="s_city" class="form-control form-control-sm" placeholder="Gemeente"></div>
                 </div>
-
                 <hr>
                 <table class="table table-sm">
-                    <thead>
-                        <tr>
-                            <th>Omschrijving</th>
-                            <th width="80">Aantal</th>
-                            <th width="120">Prijs (ex)</th>
-                            <th width="100">BTW</th>
-                            <th width="120" class="text-end">Totaal (in)</th>
-                            <th width="40"></th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Omschrijving</th><th width="80">Aantal</th><th width="120">Prijs</th><th width="100">BTW</th><th width="120" class="text-end">Totaal</th><th width="40"></th></tr></thead>
                     <tbody id="orderLines">
                         <tr>
                             <td><input type="text" name="desc[]" class="form-control" required></td>
                             <td><input type="number" name="qty[]" class="form-control qty" value="1"></td>
                             <td><input type="number" name="price[]" class="form-control price" step="0.01" value="0.00"></td>
-                            <td>
-                                <select name="tax[]" class="form-select form-select-sm tax-sel">
-                                    <option value="21">21%</option>
-                                    <option value="12">12%</option>
-                                    <option value="6">6%</option>
-                                    <option value="0">0%</option>
-                                </select>
-                            </td>
-                            <td class="line-total fw-bold text-end">€ 0.00</td>
+                            <td><select name="tax[]" class="form-select form-select-sm tax-sel"><option value="21">21%</option><option value="6">6%</option><option value="0">0%</option></select></td>
+                            <td class="line-total text-end">€ 0.00</td>
                             <td></td>
                         </tr>
                     </tbody>
                 </table>
                 <button type="button" class="btn btn-sm btn-outline-primary" id="addRow">+ Regel</button>
-
-                <div class="text-end mt-4">
-                    <h4 class="fw-bold">Totaal: <span id="grandtotal" class="text-primary">€ 0.00</span></h4>
-                </div>
+                <div class="text-end mt-3"><h4 class="fw-bold">Totaal: <span id="grandtotal">€ 0.00</span></h4></div>
             </div>
-            <div class="card-footer text-end">
-                <button type="submit" class="btn btn-success btn-lg px-5">Opslaan</button>
+            <div class="card-footer d-flex justify-content-between">
+                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary btn-lg">Bewaren als Concept</button>
+                <button type="submit" name="action" value="submit" class="btn btn-success btn-lg px-5">Verzenden ter Goedkeuring</button>
             </div>
         </div>
     </form>
 </div>
 
 <script>
-    // Autocomplete logica (identiek aan vorige maar met gesplitste velden)
     const supIn = document.getElementById('supplierInput');
     const supRes = document.getElementById('supplierResults');
     supIn.addEventListener('input', async (e) => {
@@ -82,18 +56,10 @@
         const data = await res.json();
         supRes.innerHTML = '';
         data.forEach(s => {
-            const a = document.createElement('a');
-            a.className = "list-group-item list-group-item-action";
-            a.innerHTML = `<strong>${s.name}</strong> - ${s.city}`;
+            const a = document.createElement('a'); a.className = "list-group-item list-group-item-action"; a.innerHTML = `<strong>${s.name}</strong> - ${s.city}`;
             a.onclick = () => {
-                supIn.value = s.name;
-                document.getElementById('s_street').value = s.street;
-                document.getElementById('s_num').value = s.num;
-                document.getElementById('s_zip').value = s.zip;
-                document.getElementById('s_city').value = s.city;
-                document.getElementById('s_country').value = s.country;
-                document.getElementById('s_vat').value = s.vat;
-                supRes.classList.add('d-none');
+                supIn.value = s.name; document.getElementById('s_street').value = s.street; document.getElementById('s_num').value = s.num;
+                document.getElementById('s_zip').value = s.zip; document.getElementById('s_city').value = s.city; document.getElementById('s_vat').value = s.vat; supRes.classList.add('d-none');
             };
             supRes.appendChild(a);
         });
@@ -103,26 +69,16 @@
     function calc() {
         let grand = 0;
         document.querySelectorAll('#orderLines tr').forEach(row => {
-            const q = row.querySelector('.qty').value || 0;
-            const p = row.querySelector('.price').value || 0;
-            const t = row.querySelector('.tax-sel').value;
-            const total = (q * p) * (1 + (t/100));
-            row.querySelector('.line-total').innerText = '€ ' + total.toFixed(2);
-            grand += total;
+            const q = row.querySelector('.qty').value || 0; const p = row.querySelector('.price').value || 0; const t = row.querySelector('.tax-sel').value;
+            const total = (q * p) * (1 + (t/100)); row.querySelector('.line-total').innerText = '€ ' + total.toFixed(2); grand += total;
         });
         document.getElementById('grandtotal').innerText = '€ ' + grand.toFixed(2);
     }
     document.getElementById('orderLines').addEventListener('input', calc);
     document.getElementById('addRow').addEventListener('click', () => {
-        const tr = `<tr>
-            <td><input type="text" name="desc[]" class="form-control" required></td>
-            <td><input type="number" name="qty[]" class="form-control qty" value="1"></td>
-            <td><input type="number" name="price[]" class="form-control price" step="0.01" value="0.00"></td>
-            <td><select name="tax[]" class="form-select form-select-sm tax-sel"><option value="21">21%</option><option value="12">12%</option><option value="6">6%</option><option value="0">0%</option></select></td>
-            <td class="line-total fw-bold text-end">€ 0.00</td>
-            <td><button type="button" class="btn btn-danger btn-sm removeRow">×</button></td>
-        </tr>`;
+        const tr = `<tr><td><input type="text" name="desc[]" class="form-control" required></td><td><input type="number" name="qty[]" class="form-control qty" value="1"></td><td><input type="number" name="price[]" class="form-control price" step="0.01" value="0.00"></td><td><select name="tax[]" class="form-select form-select-sm tax-sel"><option value="21">21%</option><option value="6">6%</option><option value="0">0%</option></select></td><td class="line-total text-end">€ 0.00</td><td><button type="button" class="btn btn-danger btn-sm removeRow">×</button></td></tr>`;
         document.getElementById('orderLines').insertAdjacentHTML('beforeend', tr);
     });
+    document.getElementById('orderLines').addEventListener('click', e => { if(e.target.classList.contains('removeRow')) { e.target.closest('tr').remove(); calc(); }});
 </script>
 {% endblock %}

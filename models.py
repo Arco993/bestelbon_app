@@ -11,9 +11,12 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(20), nullable=False) # 'Personeel', 'BO', 'Directie', 'Admin'
     department = db.Column(db.String(20))
+    department_code = db.Column(db.String(5)) # Nieuw: bijv. 'TD', 'ICT', 'PO'
     min_attachment_limit = db.Column(db.Float, default=500.0) 
     max_bo_limit = db.Column(db.Float, default=1000.0)       
     approver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    orders = db.relationship('Order', backref='user', lazy=True)
 
 class Supplier(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -27,14 +30,25 @@ class Supplier(db.Model):
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    order_number = db.Column(db.String(20), unique=True)
+    order_number = db.Column(db.String(50), unique=True) # De slimme referentie
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    status = db.Column(db.String(30), default='Wachten op BO')
-    reference = db.Column(db.String(200))
+    status = db.Column(db.String(30), default='Concept')
+    reference = db.Column(db.String(200)) # Extra omschrijving user
     total_amount = db.Column(db.Float, default=0.0)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
     attachment_path = db.Column(db.String(200))
+    
+    # Goedkeurings-data (Unieke stempels)
+    bo_approval_code = db.Column(db.String(50))
+    bo_approval_date = db.Column(db.DateTime)
+    bo_name = db.Column(db.String(100))
+    
+    dir_approval_code = db.Column(db.String(50))
+    dir_approval_date = db.Column(db.DateTime)
+    dir_name = db.Column(db.String(100))
+
+    supplier = db.relationship('Supplier', backref='orders', lazy=True)
     lines = db.relationship('OrderLine', backref='order', lazy=True)
 
 class OrderLine(db.Model):
@@ -44,7 +58,3 @@ class OrderLine(db.Model):
     quantity = db.Column(db.Integer)
     unit_price = db.Column(db.Float)
     tax_rate = db.Column(db.Float, default=21.0)
-
-class Setting(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    global_attachment_limit = db.Column(db.Float, default=500.0)

@@ -3,29 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bestelsysteem</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <title>Bestelbonnen - Stichting M.M. Delacroix</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: #F4F7F6; /* Iets zachter grijs/wit */
+            color: #333;
+        }
+
+        /* --- De Huisstijl Header --- */
+        .delacroix-header {
+            background-color: white;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .navbar-brand img {
+            height: 60px; /* Logo grootte */
+        }
+
+        /* --- De Regenboog Menubalk (Cruciaal) --- */
+        .rainbow-nav {
+            padding: 0;
+            background-color: white;
+        }
+        
+        .rainbow-nav .nav-link {
+            color: #555 !important;
+            font-weight: 600;
+            padding: 15px 20px !important;
+            border-bottom: 4px solid transparent; /* Basis voor gekleurde lijn */
+            transition: all 0.2s;
+        }
+
+        /* Specifieke kleuren per menu-item (gebaseerd op website) */
+        .rainbow-nav .nav-item:nth-child(1) .nav-link:hover, 
+        .rainbow-nav .nav-item:nth-child(1) .nav-link.active { border-bottom-color: #00A3DA; color: #00A3DA !important; } /* Blauw */
+        
+        .rainbow-nav .nav-item:nth-child(2) .nav-link:hover,
+        .rainbow-nav .nav-item:nth-child(2) .nav-link.active { border-bottom-color: #FF9F00; color: #FF9F00 !important; } /* Oranje */
+        
+        .rainbow-nav .nav-item:nth-child(3) .nav-link:hover,
+        .rainbow-nav .nav-item:nth-child(3) .nav-link.active { border-bottom-color: #8CC63F; color: #8CC63F !important; } /* Groen */
+        
+        .rainbow-nav .nav-item:nth-child(4) .nav-link:hover,
+        .rainbow-nav .nav-item:nth-child(4) .nav-link.active { border-bottom-color: #00BFA5; color: #00BFA5 !important; } /* Lichtblauw */
+        
+        .rainbow-nav .nav-item:nth-child(5) .nav-link:hover,
+        .rainbow-nav .nav-item:nth-child(5) .nav-link.active { border-bottom-color: #EC008C; color: #EC008C !important; } /* Roze */
+
+        /* --- De Oranje Knop (Wie zijn wij-stijl) --- */
+        .btn-delacroix-orange {
+            background-color: #FF9F00;
+            color: white;
+            border: none;
+            font-weight: 700;
+            border-radius: 25px; /* Rond zoals op website */
+            padding: 10px 25px;
+            transition: background-color 0.2s;
+        }
+        .btn-delacroix-orange:hover {
+            background-color: #E68A00;
+            color: white;
+        }
+
+        /* Algemene kaart-stijl */
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .card-header {
+            border-top-left-radius: 10px !important;
+            border-top-right-radius: 10px !important;
+        }
+    </style>
 </head>
-<body class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('dashboard') }}">BestelApp</a>
+<body>
+
+    <div class="delacroix-header">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Stichting M.M. Delacroix Logo">
+            </a>
             {% if current_user.is_authenticated %}
-            <div class="navbar-nav ms-auto">
-                <span class="nav-link text-light me-3">Hallo, {{ current_user.username }} ({{ current_user.role }})</span>
-                <a class="btn btn-outline-light btn-sm" href="{{ url_for('logout') }}">Uitloggen</a>
-            </div>
+                <div class="text-muted small">
+                    Ingelogd als: <strong>{{ current_user.username }}</strong> ({{ current_user.role }})
+                </div>
             {% endif %}
         </div>
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <nav class="navbar navbar-expand-lg rainbow-nav shadow-sm sticky-top mb-4">
+        <div class="container">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'my_orders' %}active{% endif %}" href="{{ url_for('my_orders') }}">Mijn Bonnen</a>
+                    </li>
+                    {% if current_user.role in ['BO', 'Directie', 'Admin'] %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'approve_list' %}active{% endif %}" href="{{ url_for('approve_list') }}">Te Beoordelen</a>
+                    </li>
+                    {% endif %}
+                    {% if current_user.role == 'Admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'setup' %}active{% endif %}" href="{{ url_for('setup') }}">Beheer</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Uitloggen</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
     </nav>
+    {% endif %}
 
     <div class="container">
-        {% with messages = get_flashed_messages() %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            {% for message in messages %}
-              <div class="alert alert-info alert-dismissible fade show" role="alert">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
                 {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
               </div>
             {% endfor %}
           {% endif %}
@@ -34,6 +148,6 @@
         {% block content %}{% endblock %}
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.bundle.min.js"></script>
 </body>
 </html>
