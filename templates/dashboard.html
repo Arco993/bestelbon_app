@@ -18,7 +18,7 @@
                                 <p class="card-text">Maak een nieuwe bestelbon aan of bekijk je aanvragen.</p>
                                 <div class="d-grid gap-2">
                                     <a href="{{ url_for('new_order') }}" class="btn btn-success">Nieuwe Bestelbon Aanmaken</a>
-                                    <a href="#" class="btn btn-outline-secondary">Mijn Overzicht</a>
+                                    <a href="{{ url_for('my_orders') }}" class="btn btn-outline-secondary">Mijn Overzicht</a>
                                 </div>
                             </div>
                         </div>
@@ -31,7 +31,7 @@
                             <div class="card-body">
                                 <h5 class="card-title text-primary">Te Beoordelen</h5>
                                 <p class="card-text">Er wachten momenteel bonnen op uw goedkeuring.</p>
-                                <a href="#" class="btn btn-primary">Open Wachtrij</a>
+                                <a href="{{ url_for('approve_list') }}" class="btn btn-primary">Open Wachtrij</a>
                             </div>
                         </div>
                     </div>

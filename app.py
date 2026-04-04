@@ -81,6 +81,35 @@ def new_order():
         return redirect(url_for('dashboard'))
     return render_template('new_order.html')
 
+@app.route('/my_orders')
+@login_required
+def my_orders():
+    # Toon alle bonnen die de huidige gebruiker zelf heeft gemaakt
+    orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.created_at.desc()).all()
+    return render_template('my_orders.html', orders=orders)
+
+@app.route('/approve_list')
+@login_required
+def approve_list():
+    # Alleen toegankelijk voor BO, Directie of Admin
+    if current_user.role not in ['BO', 'Directie', 'Admin']:
+        return redirect(url_for('dashboard'))
+    
+    # Logica voor wie wat mag zien:
+    if current_user.role == 'Directie':
+        # Directie ziet alleen bonnen met status 'Wachten op Directie'
+        orders = Order.query.filter_by(status='Wachten op Directie').all()
+    elif current_user.role == 'BO':
+        # Een BO ziet bonnen van personeelsleden waar hij 'approver' van is
+        # En die de status 'Wachten op BO' hebben
+        subordinates = User.query.filter_by(approver_id=current_user.id).all()
+        sub_ids = [s.id for s in subordinates]
+        orders = Order.query.filter(Order.user_id.in_(sub_ids), Order.status == 'Wachten op BO').all()
+    else: # Admin ziet alles
+        orders = Order.query.all()
+        
+    return render_template('approve_list.html', orders=orders)
+
 @app.route('/search_supplier')
 @login_required
 def search_supplier():

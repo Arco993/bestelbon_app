@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Mijn Bestelbonnen</h2>
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Datum</th>
+                        <th>Bon nr.</th>
+                        <th>Leverancier</th>
+                        <th>Bedrag (incl)</th>
+                        <th>Status</th>
+                        <th>Actie</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in orders %}
+                    <tr>
+                        <td>{{ o.created_at.strftime('%d-%m-%Y') }}</td>
+                        <td><strong>{{ o.order_number }}</strong></td>
+                        <td>{{ o.supplier.name }}</td>
+                        <td>€ {{ "%.2f"|format(o.total_amount) }}</td>
+                        <td>
+                            <span class="badge {% if o.status == 'Goedgekeurd' %}bg-success{% elif 'Wachten' in o.status %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                {{ o.status }}
+                            </span>
+                        </td>
+                        <td><a href="#" class="btn btn-sm btn-outline-primary">Bekijken</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
