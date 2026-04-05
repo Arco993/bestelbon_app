@@ -1,53 +1,181 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="nl" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Delacroix Bestelbonnen</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
     <style>
-        .btn-delacroix-orange { background-color: #e05e00; color: white; border-color: #e05e00; }
-        .btn-delacroix-orange:hover { background-color: #cc5500; color: white; }
-        body { background-color: #f8f9fa; }
+        /* --- DELACROIX HUISSTIJL --- */
+        :root {
+            --delacroix-orange: #f29200;
+            --delacroix-orange-hover: #d17d00;
+            --delacroix-text: #7a4329;
+            --delacroix-teal: #008b8b;
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            padding-bottom: 2rem;
+            background-color: var(--bs-body-bg);
+        }
+
+        /* De 5-kleurige Huisstijl Balk */
+        .brand-bar {
+            height: 6px;
+            width: 100%;
+            background: linear-gradient(to right, 
+                #009fe3 0%, #009fe3 20%, 
+                #f29200 20%, #f29200 40%, 
+                #8dc63f 40%, #8dc63f 60%, 
+                #e4007d 60%, #e4007d 80%, 
+                #0054a4 80%, #0054a4 100%);
+        }
+
+        .navbar-custom {
+            background-color: var(--bs-body-bg);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        /* --- STATISCHE MENU KNOPPEN IN DE 5 HUISSTIJLKLEUREN --- */
+        .btn-brand-cyan { background-color: #009fe3; color: white; border: none; }
+        .btn-brand-cyan:hover { background-color: #0088cc; color: white; }
+
+        .btn-brand-green { background-color: #8dc63f; color: white; border: none; }
+        .btn-brand-green:hover { background-color: #7ab236; color: white; }
+
+        .btn-brand-pink { background-color: #e4007d; color: white; border: none; }
+        .btn-brand-pink:hover { background-color: #cc0070; color: white; }
+
+        .btn-brand-blue { background-color: #0054a4; color: white; border: none; }
+        .btn-brand-blue:hover { background-color: #004588; color: white; }
+
+        .btn-brand-orange { background-color: #f29200; color: white; border: none; }
+        .btn-brand-orange:hover { background-color: #d17d00; color: white; }
+        
+        .nav-btn {
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            transition: transform 0.1s ease;
+        }
+        .nav-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Theme Toggle Knop */
+        .theme-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--bs-body-color);
+            cursor: pointer;
+        }
     </style>
+
+    <script>
+        const storedTheme = localStorage.getItem('theme');
+        {% if current_user.is_authenticated %}
+            const userTheme = "{{ 'dark' if current_user.dark_mode else 'light' }}";
+            document.documentElement.setAttribute('data-bs-theme', userTheme);
+            localStorage.setItem('theme', userTheme);
+        {% else %}
+            if (storedTheme) { document.documentElement.setAttribute('data-bs-theme', storedTheme); }
+        {% endif %}
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            html.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            const icon = document.getElementById('themeIcon');
+            if(newTheme === 'dark') {
+                icon.classList.replace('bi-moon-stars-fill', 'bi-sun-fill');
+                icon.classList.add('text-warning');
+            } else {
+                icon.classList.replace('bi-sun-fill', 'bi-moon-stars-fill');
+                icon.classList.remove('text-warning');
+            }
+
+            {% if current_user.is_authenticated %}
+            fetch('/toggle_theme', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dark_mode: newTheme === 'dark' })
+            });
+            {% endif %}
+        }
+    </script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold text-uppercase" href="{{ url_for('dashboard') }}">
-                <i class="bi bi-box-seam me-2 text-warning"></i>Delacroix
+    <div class="brand-bar"></div>
+
+    <nav class="navbar navbar-custom mb-4 py-3 shadow-sm">
+        <div class="container-fluid d-flex flex-column flex-lg-row align-items-center gap-3">
+            
+            <a class="navbar-brand m-0" href="{{ url_for('dashboard') }}">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Delacroix Logo" height="50">
             </a>
+            
             {% if current_user.is_authenticated %}
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('my_orders') }}"><i class="bi bi-list-ul me-1"></i>Mijn Bonnen</a></li>
-                    {% if current_user.role in ['BO', 'Directie', 'Admin'] %}
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('approve_list') }}"><i class="bi bi-shield-check me-1"></i>Te Beoordelen</a></li>
-                    {% endif %}
-                    {% if current_user.role == 'Admin' %}
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('setup') }}"><i class="bi bi-gear-fill me-1"></i>Setup</a></li>
-                    {% endif %}
-                </ul>
-                <span class="navbar-text me-3 small text-light">
-                    Ingelogd als <strong>{{ current_user.username }}</strong> ({{ current_user.role }})
+            <div class="d-flex flex-wrap justify-content-center gap-2 flex-grow-1">
+                <a href="{{ url_for('my_orders') }}" class="btn btn-brand-cyan nav-btn shadow-sm">
+                    <i class="bi bi-list-ul me-1"></i>Mijn Bonnen
+                </a>
+                
+                {% if current_user.role in ['BO', 'Directie', 'Admin'] %}
+                <a href="{{ url_for('approve_list') }}" class="btn btn-brand-green nav-btn shadow-sm">
+                    <i class="bi bi-shield-check me-1"></i>Te Beoordelen
+                </a>
+                <a href="{{ url_for('my_approvals') }}" class="btn btn-brand-pink nav-btn shadow-sm">
+                    <i class="bi bi-clock-history me-1"></i>Historiek
+                </a>
+                {% endif %}
+                
+                {% if current_user.role in ['Directie', 'Admin'] %}
+                <a href="{{ url_for('all_orders') }}" class="btn btn-brand-blue nav-btn shadow-sm">
+                    <i class="bi bi-archive me-1"></i>Groot Archief
+                </a>
+                {% endif %}
+                
+                {% if current_user.role == 'Admin' %}
+                <a href="{{ url_for('setup') }}" class="btn btn-brand-orange nav-btn shadow-sm">
+                    <i class="bi bi-gear-fill me-1"></i>Setup
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                <button onclick="toggleTheme()" class="theme-toggle-btn fs-5" title="Schakel donkere modus in/uit">
+                    <i id="themeIcon" class="bi bi-moon-stars-fill"></i>
+                </button>
+                <span class="text-muted small d-none d-md-block">
+                    <i class="bi bi-person-circle me-1"></i><strong>{{ current_user.username }}</strong>
                 </span>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Uitloggen</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-sm fw-bold">Uitloggen</a>
             </div>
             {% endif %}
         </div>
     </nav>
 
+    <script>
+        if (document.documentElement.getAttribute('data-bs-theme') === 'dark') {
+            document.getElementById('themeIcon')?.classList.replace('bi-moon-stars-fill', 'bi-sun-fill');
+            document.getElementById('themeIcon')?.classList.add('text-warning');
+        }
+    </script>
+
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm border-0 border-start border-4 border-{{ category }}" role="alert">
                         {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Sluiten"></button>
                     </div>
                 {% endfor %}
             {% endif %}

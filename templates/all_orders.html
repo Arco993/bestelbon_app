@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid pb-5">
+    <h2 class="fw-bold mb-4"><i class="bi bi-archive-fill me-2 text-dark"></i>Groot Archief</h2>
+
+    <div class="card shadow-sm border-0 mb-4 bg-light">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('all_orders') }}" class="row g-3">
+                <div class="col-md-4">
+                    <label class="small fw-bold">Leverancier</label>
+                    <input type="text" name="supplier" class="form-control" placeholder="Zoek op naam..." value="{{ q_supplier }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="small fw-bold">Afdeling</label>
+                    <select name="dept" class="form-select">
+                        <option value="">Alle Afdelingen</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept }}" {% if q_dept == dept %}selected{% endif %}>{{ dept }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="small fw-bold">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Alle Statussen</option>
+                        <option value="Goedgekeurd" {% if q_status == 'Goedgekeurd' %}selected{% endif %}>Goedgekeurd</option>
+                        <option value="Afgewezen" {% if q_status == 'Afgewezen' %}selected{% endif %}>Afgewezen</option>
+                        <option value="Wachten op BO" {% if q_status == 'Wachten op BO' %}selected{% endif %}>Wachten op BO</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-dark w-100 fw-bold">Filteren</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Datum</th>
+                            <th>Aanvrager</th>
+                            <th>Leverancier</th>
+                            <th class="text-end">Bedrag</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-end">Actie</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in orders %}
+                        <tr>
+                            <td class="small">{{ o.created_at.strftime('%d-%m-%Y') }}</td>
+                            <td><strong>{{ o.user.username }}</strong> <small class="badge bg-light text-dark border">{{ o.user.department_code }}</small></td>
+                            <td>{{ o.supplier.name }}</td>
+                            <td class="text-end fw-bold">€ {{ "%.2f"|format(o.total_amount) }}</td>
+                            <td class="text-center">
+                                <span class="badge {% if o.status == 'Goedgekeurd' %}bg-success{% elif o.status == 'Afgewezen' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ o.status }}</span>
+                            </td>
+                            <td class="text-end"><a href="{{ url_for('order_detail', order_id=o.id) }}" class="btn btn-sm btn-outline-primary">Bekijken</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

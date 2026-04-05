@@ -1,28 +1,36 @@
 {% extends "base.html" %}
+
 {% block content %}
 <div class="container d-flex justify-content-center align-items-center" style="min-height: 70vh;">
-    <div class="card shadow-lg border-0" style="width: 100%; max-width: 400px;">
-        <div class="card-header bg-dark text-white text-center py-4">
-            <h4 class="mb-0 fw-bold text-uppercase"><i class="bi bi-box-seam text-warning me-2"></i>Delacroix</h4>
-            <small class="text-light">Bestelbonnen Portaal</small>
+    <div class="card shadow-lg border-0" style="width: 100%; max-width: 420px; border-radius: 12px; overflow: hidden;">
+        <div class="brand-bar" style="height: 4px;"></div>
+        
+        <div class="card-header bg-transparent border-0 text-center pt-5 pb-2">
+            <h4 class="mb-1 fw-bold" style="color: var(--delacroix-text);">Portaal Bestelbonnen</h4>
+            <p class="text-muted small">Meld je aan om verder te gaan</p>
         </div>
-        <div class="card-body p-4 bg-white">
+        
+        <div class="card-body p-4 pt-2">
             <form method="POST" action="{{ url_for('login') }}">
                 <div class="mb-3">
                     <label class="form-label fw-bold small text-muted text-uppercase">Gebruikersnaam</label>
-                    <div class="input-group">
+                    <div class="input-group shadow-sm">
                         <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-secondary"></i></span>
-                        <input type="text" name="username" class="form-control border-start-0 ps-0" required autofocus>
+                        <input type="text" name="username" class="form-control border-start-0 ps-0" placeholder="Vul je naam in..." required autofocus>
                     </div>
                 </div>
+                
                 <div class="mb-4">
                     <label class="form-label fw-bold small text-muted text-uppercase">Wachtwoord</label>
-                    <div class="input-group">
+                    <div class="input-group shadow-sm">
                         <span class="input-group-text bg-light border-end-0"><i class="bi bi-key text-secondary"></i></span>
-                        <input type="password" name="password" class="form-control border-start-0 ps-0" required>
+                        <input type="password" name="password" class="form-control border-start-0 ps-0" placeholder="••••••••" required>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-delacroix-orange w-100 fw-bold py-2 shadow-sm">Aanmelden</button>
+                
+                <button type="submit" class="btn btn-delacroix-orange w-100 fw-bold py-2 shadow-sm rounded-3">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Aanmelden
+                </button>
             </form>
         </div>
     </div>

@@ -9,12 +9,17 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100), nullable=False)
-    role = db.Column(db.String(20), nullable=False) # Personeel, BO, Directie, Admin
+    role = db.Column(db.String(20), nullable=False) 
     department = db.Column(db.String(50))
     department_code = db.Column(db.String(5))
+    
+    # Limieten
     min_attachment_limit = db.Column(db.Float, default=500.0) 
-    max_bo_limit = db.Column(db.Float, default=1000.0)       
+    max_bo_limit = db.Column(db.Float, default=1000.0)
+    auto_approve_limit = db.Column(db.Float, default=50.0)
+           
     approver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    dark_mode = db.Column(db.Boolean, default=False)
     
     orders = db.relationship('Order', backref='user', lazy=True)
 
@@ -38,15 +43,15 @@ class Order(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
     
-    # Reden voor afwijzing
+    # NIEUW: Bestandsnaam van de bijlage (Offerte)
+    attachment_filename = db.Column(db.String(255))
+    
     rejection_reason = db.Column(db.Text)
     
-    # Validatie BO
     bo_approval_code = db.Column(db.String(50))
     bo_approval_date = db.Column(db.DateTime)
     bo_name = db.Column(db.String(100))
     
-    # Validatie Directie
     dir_approval_code = db.Column(db.String(50))
     dir_approval_date = db.Column(db.DateTime)
     dir_name = db.Column(db.String(100))

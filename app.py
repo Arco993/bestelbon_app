@@ -1,3 +1,5 @@
+import os
+from werkzeug.utils import secure_filename
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from models import db, User, Order, OrderLine, Supplier
@@ -7,6 +9,16 @@ from datetime import datetime
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bestelbonnen.db'
 app.config['SECRET_KEY'] = 'supergeheim-delacroix'
+
+# --- UPLOAD CONFIGURATIE ---
+UPLOAD_FOLDER = os.path.join('static', 'uploads')
+ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True) # Maakt de map /static/uploads/ aan als deze nog niet bestaat
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 db.init_app(app)
 login_manager = LoginManager(app)
@@ -46,6 +58,14 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+@app.route('/toggle_theme', methods=['POST'])
+@login_required
+def toggle_theme():
+    data = request.get_json()
+    current_user.dark_mode = data.get('dark_mode', False)
+    db.session.commit()
+    return jsonify({'success': True})
+
 # --- BESTELBON AANMAKEN ---
 @app.route('/order/new', methods=['GET', 'POST'])
 @login_required
@@ -75,49 +95,73 @@ def new_order():
             db.session.add(supplier)
             db.session.flush()
 
-        # Status bepalen
-        status = 'Concept'
-        if action == 'submit':
-            if current_user.role == 'BO':
-                status = 'Wachten op Directie'
-            else:
-                status = 'Wachten op BO'
-
-        # Bon aanmaken
-        new_bon = Order(
-            order_number=gen_ref, 
-            reference=request.form.get('reference'), 
-            user_id=current_user.id, 
-            supplier_id=supplier.id, 
-            status=status
-        )
-        db.session.add(new_bon)
-        db.session.flush()
-
-        # Bestellijnen verwerken
+        # EERST bestellijnen verwerken om het totaalbedrag te berekenen
         descs = request.form.getlist('desc[]')
         qtys = request.form.getlist('qty[]')
         prices = request.form.getlist('price[]')
         taxes = request.form.getlist('tax[]')
         
         total_inc = 0
+        lines_to_add = []
         for i in range(len(descs)):
             q = float(qtys[i] or 0)
             p = float(prices[i] or 0)
             t = float(taxes[i] or 0)
             line_total = (q * p) * (1 + (t/100))
             total_inc += line_total
-            
+            lines_to_add.append({'desc': descs[i], 'qty': int(q), 'price': p, 'tax': t})
+
+        # --- BIJLAGE VERWERKEN & VERPLICHTING CHECKEN ---
+        attachment_name = None
+        file = request.files.get('attachment')
+        
+        if file and file.filename != '' and allowed_file(file.filename):
+            # Veilig opslaan met datum erbij (voorkomt overschrijven van bestanden met dezelfde naam)
+            filename = secure_filename(file.filename)
+            unique_filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+            attachment_name = unique_filename
+        elif action == 'submit' and total_inc > current_user.min_attachment_limit:
+            # Blokkeer indiening als bedrag > limiet is en er geen bestand is
+            flash(f'Een offerte in bijlage is verplicht voor bestellingen boven € {current_user.min_attachment_limit}!', 'danger')
+            return redirect(url_for('new_order'))
+
+        # NIEUWE STATUS LOGICA: Bepaal of goedkeuring nodig is
+        status = 'Concept'
+        if action == 'submit':
+            if not current_user.approver_id:
+                status = 'Goedgekeurd'
+            elif total_inc <= current_user.auto_approve_limit:
+                status = 'Goedgekeurd'
+            elif current_user.role == 'BO':
+                status = 'Wachten op Directie'
+            else:
+                status = 'Wachten op BO'
+
+        # Bon aanmaken (inclusief attachment_filename)
+        new_bon = Order(
+            order_number=gen_ref, 
+            reference=request.form.get('reference'), 
+            user_id=current_user.id, 
+            supplier_id=supplier.id, 
+            status=status,
+            total_amount=total_inc,
+            attachment_filename=attachment_name
+        )
+        db.session.add(new_bon)
+        db.session.flush()
+
+        # Lijnen definitief opslaan
+        for l in lines_to_add:
             line = OrderLine(
                 order_id=new_bon.id, 
-                description=descs[i], 
-                quantity=int(q), 
-                unit_price=p, 
-                tax_rate=t
+                description=l['desc'], 
+                quantity=l['qty'], 
+                unit_price=l['price'], 
+                tax_rate=l['tax']
             )
             db.session.add(line)
 
-        new_bon.total_amount = total_inc
         db.session.commit()
         
         flash(f'Bestelbon {gen_ref} succesvol verwerkt.', 'success')
@@ -127,7 +171,7 @@ def new_order():
     dept_code = current_user.department_code or "GEN"
     next_ref = f"{dept_code}-{datetime.now().year}-{secrets.token_hex(2).upper()}"
     
-    approver_name = "Directie"
+    approver_name = "Niemand (Direct goedgekeurd)"
     if current_user.approver_id:
         ap = User.query.get(current_user.approver_id)
         if ap: 
@@ -147,6 +191,12 @@ def my_orders():
 def order_detail(order_id):
     order = Order.query.get_or_404(order_id)
     return render_template('order_detail.html', order=order)
+
+@app.route('/order/<int:order_id>/pdf')
+@login_required
+def order_pdf(order_id):
+    order = Order.query.get_or_404(order_id)
+    return render_template('order_pdf.html', order=order)
 
 @app.route('/approve_list')
 @login_required
@@ -237,6 +287,50 @@ def setup():
     approvers = User.query.filter(User.role.in_(['BO', 'Directie', 'Admin'])).all()
     return render_template('setup.html', users=users, approvers=approvers)
 
+# --- ARCHIEF VOOR GOEDKEURDERS ---
+@app.route('/my_approvals')
+@login_required
+def my_approvals():
+    if current_user.role not in ['BO', 'Directie', 'Admin']:
+        return redirect(url_for('dashboard'))
+    
+    orders = Order.query.filter(
+        (Order.bo_name == current_user.username) | 
+        (Order.dir_name == current_user.username)
+    ).order_by(Order.created_at.desc()).all()
+    
+    return render_template('approved_history.html', orders=orders)
+
+# --- HET GROOT ARCHIEF (Directie & Admin) ---
+@app.route('/admin/all_orders')
+@login_required
+def all_orders():
+    if current_user.role not in ['Directie', 'Admin']:
+        return redirect(url_for('dashboard'))
+    
+    q_supplier = request.args.get('supplier', '')
+    q_status = request.args.get('status', '')
+    q_dept = request.args.get('dept', '')
+
+    query = Order.query.join(User).join(Supplier)
+
+    if q_supplier:
+        query = query.filter(Supplier.name.ilike(f"%{q_supplier}%"))
+    if q_status:
+        query = query.filter(Order.status == q_status)
+    if q_dept:
+        query = query.filter(User.department_code == q_dept)
+
+    orders = query.order_by(Order.created_at.desc()).all()
+    departments = db.session.query(User.department_code).distinct().all()
+    
+    return render_template('all_orders.html', 
+                           orders=orders, 
+                           departments=[d[0] for d in departments],
+                           q_supplier=q_supplier,
+                           q_status=q_status,
+                           q_dept=q_dept)
+
 @app.route('/add_user', methods=['POST'])
 @login_required
 def add_user():
@@ -252,6 +346,7 @@ def add_user():
         department_code=request.form.get('department_code'),
         min_attachment_limit=float(request.form.get('min_attachment_limit') or 500.0),
         max_bo_limit=float(request.form.get('max_bo_limit') or 1000.0),
+        auto_approve_limit=float(request.form.get('auto_approve_limit') or 50.0),
         approver_id=approver_id
     )
     db.session.add(u)
@@ -272,6 +367,7 @@ def edit_user(user_id):
     u.department_code = request.form.get('department_code')
     u.min_attachment_limit = float(request.form.get('min_attachment_limit') or 500.0)
     u.max_bo_limit = float(request.form.get('max_bo_limit') or 1000.0)
+    u.auto_approve_limit = float(request.form.get('auto_approve_limit') or 50.0)
     
     approver_val = request.form.get('approver_id')
     u.approver_id = int(approver_val) if approver_val else None

@@ -35,7 +35,15 @@
                     </div>
                     <hr>
                     <h6 class="text-muted small fw-bold text-uppercase">Referentie / Project</h6>
-                    <p>{{ order.reference or 'Geen projectomschrijving opgegeven' }}</p>
+                    <p class="mb-0">{{ order.reference or 'Geen projectomschrijving opgegeven' }}</p>
+                    
+                    {% if order.attachment_filename %}
+                    <hr>
+                    <h6 class="text-muted small fw-bold text-uppercase"><i class="bi bi-paperclip me-1"></i>Bijlage / Offerte</h6>
+                    <a href="{{ url_for('static', filename='uploads/' + order.attachment_filename) }}" target="_blank" class="btn btn-outline-secondary btn-sm mt-1">
+                        <i class="bi bi-file-earmark-pdf text-danger me-1"></i> Bekijk Document
+                    </a>
+                    {% endif %}
                 </div>
             </div>
 
@@ -70,23 +78,25 @@
             <div class="card shadow-sm mb-4 border-0">
                 <div class="card-header bg-dark text-white fw-bold">Digitale Validatie</div>
                 <div class="card-body bg-light">
-                    <div class="mb-3 p-2 border-start border-4 {% if order.bo_approval_code %}border-success bg-white shadow-sm{% else %}border-secondary{% endif %}">
-                        <small class="text-muted d-block small fw-bold">Diensthoofd (BO):</small>
+                    <div class="mb-3 p-3 border-start border-4 {% if order.bo_approval_code %}border-success bg-white shadow-sm{% else %}border-secondary{% endif %}">
+                        <small class="text-muted d-block small fw-bold mb-1">Diensthoofd (BO):</small>
                         {% if order.bo_approval_code %}
                             <strong class="text-success small"><i class="bi bi-check-circle-fill me-1"></i> GEVALIDEERD</strong><br>
-                            <span class="small">{{ order.bo_name }}</span><br>
-                            <code class="text-dark extra-small">{{ order.bo_approval_code }}</code>
+                            <span class="small fw-bold">{{ order.bo_name }}</span><br>
+                            <span class="small text-muted"><i class="bi bi-calendar3 me-1"></i> {{ order.bo_approval_date.strftime('%d-%m-%Y om %H:%M') }}</span><br>
+                            <code class="text-dark extra-small mt-1 d-block">{{ order.bo_approval_code }}</code>
                         {% else %}
                             <span class="text-muted small fst-italic">Nog niet behandeld</span>
                         {% endif %}
                     </div>
                     
-                    <div class="p-2 border-start border-4 {% if order.dir_approval_code %}border-success bg-white shadow-sm{% else %}border-secondary{% endif %}">
-                        <small class="text-muted d-block small fw-bold">Directie:</small>
+                    <div class="p-3 border-start border-4 {% if order.dir_approval_code %}border-success bg-white shadow-sm{% else %}border-secondary{% endif %}">
+                        <small class="text-muted d-block small fw-bold mb-1">Directie:</small>
                         {% if order.dir_approval_code %}
                             <strong class="text-success small"><i class="bi bi-check-circle-fill me-1"></i> GEVALIDEERD</strong><br>
-                            <span class="small">{{ order.dir_name }}</span><br>
-                            <code class="text-dark extra-small">{{ order.dir_approval_code }}</code>
+                            <span class="small fw-bold">{{ order.dir_name }}</span><br>
+                            <span class="small text-muted"><i class="bi bi-calendar3 me-1"></i> {{ order.dir_approval_date.strftime('%d-%m-%Y om %H:%M') }}</span><br>
+                            <code class="text-dark extra-small mt-1 d-block">{{ order.dir_approval_code }}</code>
                         {% else %}
                             <span class="text-muted small fst-italic">Nog niet behandeld</span>
                         {% endif %}
@@ -106,9 +116,9 @@
             </div>
             {% endif %}
             
-            <button onclick="window.print()" class="btn btn-light w-100 border shadow-sm">
-                <i class="bi bi-printer me-2"></i> Afdrukken
-            </button>
+            <a href="{{ url_for('order_pdf', order_id=order.id) }}" target="_blank" class="btn btn-dark w-100 shadow-sm mt-2">
+                <i class="bi bi-file-earmark-pdf-fill me-2 text-danger"></i> Officiële PDF Genereren
+            </a>
         </div>
     </div>
 </div>
