@@ -7,15 +7,19 @@ import secrets
 from datetime import datetime
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bestelbonnen.db'
-app.config['SECRET_KEY'] = 'supergeheim-delacroix'
+
+# Render configuratie voor de database locatie
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance', 'bestelbonnen.db')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'supergeheim-delacroix')
 
 # --- UPLOAD CONFIGURATIE ---
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True) # Maakt de map /static/uploads/ aan als deze nog niet bestaat
+# Zorg dat de map bestaat
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -116,17 +120,15 @@ def new_order():
         file = request.files.get('attachment')
         
         if file and file.filename != '' and allowed_file(file.filename):
-            # Veilig opslaan met datum erbij (voorkomt overschrijven van bestanden met dezelfde naam)
             filename = secure_filename(file.filename)
             unique_filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
             attachment_name = unique_filename
         elif action == 'submit' and total_inc > current_user.min_attachment_limit:
-            # Blokkeer indiening als bedrag > limiet is en er geen bestand is
             flash(f'Een offerte in bijlage is verplicht voor bestellingen boven € {current_user.min_attachment_limit}!', 'danger')
             return redirect(url_for('new_order'))
 
-        # NIEUWE STATUS LOGICA: Bepaal of goedkeuring nodig is
+        # NIEUWE STATUS LOGICA
         status = 'Concept'
         if action == 'submit':
             if not current_user.approver_id:
@@ -138,7 +140,6 @@ def new_order():
             else:
                 status = 'Wachten op BO'
 
-        # Bon aanmaken (inclusief attachment_filename)
         new_bon = Order(
             order_number=gen_ref, 
             reference=request.form.get('reference'), 
@@ -151,7 +152,6 @@ def new_order():
         db.session.add(new_bon)
         db.session.flush()
 
-        # Lijnen definitief opslaan
         for l in lines_to_add:
             line = OrderLine(
                 order_id=new_bon.id, 
@@ -167,7 +167,6 @@ def new_order():
         flash(f'Bestelbon {gen_ref} succesvol verwerkt.', 'success')
         return redirect(url_for('my_orders'))
 
-    # GET Methode: Bereid het formulier voor
     dept_code = current_user.department_code or "GEN"
     next_ref = f"{dept_code}-{datetime.now().year}-{secrets.token_hex(2).upper()}"
     
@@ -179,7 +178,6 @@ def new_order():
             
     return render_template('new_order.html', next_ref=next_ref, approver_name=approver_name)
 
-# --- OVERZICHTEN ---
 @app.route('/my_orders')
 @login_required
 def my_orders():
@@ -214,7 +212,6 @@ def approve_list():
         
     return render_template('approve_list.html', orders=orders)
 
-# --- GOEDKEUREN & AFWIJZEN ---
 @app.route('/order/approve/<int:order_id>')
 @login_required
 def approve_order(order_id):
@@ -276,7 +273,6 @@ def search_supplier():
         })
     return jsonify(results)
 
-# --- ADMIN BEHEER ---
 @app.route('/setup')
 @login_required
 def setup():
@@ -287,7 +283,6 @@ def setup():
     approvers = User.query.filter(User.role.in_(['BO', 'Directie', 'Admin'])).all()
     return render_template('setup.html', users=users, approvers=approvers)
 
-# --- ARCHIEF VOOR GOEDKEURDERS ---
 @app.route('/my_approvals')
 @login_required
 def my_approvals():
@@ -301,7 +296,6 @@ def my_approvals():
     
     return render_template('approved_history.html', orders=orders)
 
-# --- HET GROOT ARCHIEF (Directie & Admin) ---
 @app.route('/admin/all_orders')
 @login_required
 def all_orders():
@@ -380,5 +374,6 @@ def edit_user(user_id):
     flash(f'Wijzigingen voor {u.username} zijn succesvol opgeslagen.', 'success')
     return redirect(url_for('setup'))
 
-if __name__ == '__main__': 
-    app.run(debug=True)
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
