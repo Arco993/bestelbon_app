@@ -1,43 +1,30 @@
 {% extends "base.html" %}
-
 {% block content %}
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Mijn Bestelbonnen</h2>
-        <a href="{{ url_for('new_order') }}" class="btn btn-success">+ Nieuwe Bon</a>
+        <h2 class="fw-bold text-dark"><i class="bi bi-list-ul me-2 text-primary"></i>Mijn Bestelbonnen</h2>
+        <a href="{{ url_for('new_order') }}" class="btn btn-delacroix-orange shadow-sm">Nieuwe Bon</a>
     </div>
-
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Datum</th>
-                        <th>Nr.</th>
-                        <th>Leverancier</th>
-                        <th>Referentie</th>
-                        <th class="text-end">Totaal (incl)</th>
-                        <th>Status</th>
-                    </tr>
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr><th>Datum</th><th>Nummer</th><th>Leverancier</th><th class="text-end">Bedrag</th><th class="text-center">Status</th><th class="text-end">Actie</th></tr>
                 </thead>
                 <tbody>
                     {% for o in orders %}
-                    <tr class="align-middle">
-                        <td>{{ o.created_at.strftime('%d-%m-%Y') }}</td>
-                        <td><strong>{{ o.order_number }}</strong></td>
+                    <tr>
+                        <td class="small text-muted">{{ o.created_at.strftime('%d-%m-%Y') }}</td>
+                        <td><div class="fw-bold">{{ o.order_number }}</div></td>
                         <td>{{ o.supplier.name }}</td>
-                        <td class="text-muted small">{{ o.reference or '-' }}</td>
-                        <td class="text-end fw-bold text-primary">€ {{ "%.2f"|format(o.total_amount) }}</td>
-                        <td>
-                            <span class="badge {% if o.status == 'Goedgekeurd' %}bg-success{% elif o.status == 'Afgewezen' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
-                                {{ o.status }}
-                            </span>
+                        <td class="text-end fw-bold">€ {{ "%.2f"|format(o.total_amount) }}</td>
+                        <td class="text-center">
+                            <span class="badge {% if o.status == 'Goedgekeurd' %}bg-success{% elif o.status == 'Afgewezen' %}bg-danger{% else %}bg-warning text-dark{% endif %} px-3">{{ o.status }}</span>
                         </td>
+                        <td class="text-end"><a href="{{ url_for('order_detail', order_id=o.id) }}" class="btn btn-sm btn-outline-primary px-3">Bekijken</a></td>
                     </tr>
                     {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">Je hebt nog geen bonnen aangemaakt.</td>
-                    </tr>
+                    <tr><td colspan="6" class="text-center py-5 text-muted">Geen bonnen gevonden.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

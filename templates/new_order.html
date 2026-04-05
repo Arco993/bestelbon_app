@@ -1,19 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container pb-5">
-    <h2>Nieuwe Bestelbon</h2>
+    <div class="card bg-light mb-4 shadow-sm border-0">
+        <div class="card-body d-flex justify-content-between align-items-center py-2">
+            <div>
+                <span class="text-muted small text-uppercase fw-bold">Nieuwe Bon:</span>
+                <span class="ms-2 fw-bold text-primary">{{ next_ref }}</span>
+            </div>
+            <div>
+                <span class="text-muted small text-uppercase fw-bold">Goedkeuring door:</span>
+                <span class="ms-2 badge bg-dark">{{ approver_name }}</span>
+            </div>
+        </div>
+    </div>
+
     <form method="POST">
+        <input type="hidden" name="generated_order_number" value="{{ next_ref }}">
         <div class="card shadow-sm mb-4">
             <div class="card-body">
                 <div class="row mb-3">
                     <div class="col-md-6 position-relative">
-                        <label class="fw-bold">Leverancier</label>
+                        <label class="fw-bold small">LEVERANCIER</label>
                         <input type="text" name="supplier_name" id="supplierInput" class="form-control" required autocomplete="off">
                         <div id="supplierResults" class="list-group position-absolute w-100 shadow d-none" style="z-index:1000;"></div>
                     </div>
                     <div class="col-md-6">
-                        <label class="fw-bold">Eigen Referentie (Project)</label>
-                        <input type="text" name="reference" class="form-control" placeholder="Bijv: Nieuwbouw kantoor">
+                        <label class="fw-bold small">PROJECT / REFERENTIE</label>
+                        <input type="text" name="reference" class="form-control">
                     </div>
                 </div>
                 <div class="row g-2 mb-3">
@@ -24,24 +37,30 @@
                 </div>
                 <hr>
                 <table class="table table-sm">
-                    <thead><tr><th>Omschrijving</th><th width="80">Aantal</th><th width="120">Prijs</th><th width="100">BTW</th><th width="120" class="text-end">Totaal</th><th width="40"></th></tr></thead>
+                    <thead>
+                        <tr><th>OMSCHRIJVING</th><th width="80">AANTAL</th><th width="120">PRIJS</th><th width="100">BTW</th><th class="text-end">TOTAAL</th><th width="40"></th></tr>
+                    </thead>
                     <tbody id="orderLines">
                         <tr>
                             <td><input type="text" name="desc[]" class="form-control" required></td>
                             <td><input type="number" name="qty[]" class="form-control qty" value="1"></td>
                             <td><input type="number" name="price[]" class="form-control price" step="0.01" value="0.00"></td>
-                            <td><select name="tax[]" class="form-select form-select-sm tax-sel"><option value="21">21%</option><option value="6">6%</option><option value="0">0%</option></select></td>
-                            <td class="line-total text-end">€ 0.00</td>
+                            <td>
+                                <select name="tax[]" class="form-select form-select-sm tax-sel">
+                                    <option value="21">21%</option><option value="6">6%</option><option value="0">0%</option>
+                                </select>
+                            </td>
+                            <td class="line-total text-end fw-bold">€ 0.00</td>
                             <td></td>
                         </tr>
                     </tbody>
                 </table>
                 <button type="button" class="btn btn-sm btn-outline-primary" id="addRow">+ Regel</button>
-                <div class="text-end mt-3"><h4 class="fw-bold">Totaal: <span id="grandtotal">€ 0.00</span></h4></div>
+                <div class="text-end mt-3"><h3 class="fw-bold text-primary" id="grandtotal">€ 0.00</h3></div>
             </div>
             <div class="card-footer d-flex justify-content-between">
-                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary btn-lg">Bewaren als Concept</button>
-                <button type="submit" name="action" value="submit" class="btn btn-success btn-lg px-5">Verzenden ter Goedkeuring</button>
+                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">Concept</button>
+                <button type="submit" name="action" value="submit" class="btn btn-delacroix-orange px-5">Verzenden</button>
             </div>
         </div>
     </form>
@@ -50,33 +69,48 @@
 <script>
     const supIn = document.getElementById('supplierInput');
     const supRes = document.getElementById('supplierResults');
+
     supIn.addEventListener('input', async (e) => {
         if (e.target.value.length < 2) { supRes.classList.add('d-none'); return; }
         const res = await fetch(`/search_supplier?q=${e.target.value}`);
         const data = await res.json();
-        supRes.innerHTML = '';
-        data.forEach(s => {
-            const a = document.createElement('a'); a.className = "list-group-item list-group-item-action"; a.innerHTML = `<strong>${s.name}</strong> - ${s.city}`;
-            a.onclick = () => {
-                supIn.value = s.name; document.getElementById('s_street').value = s.street; document.getElementById('s_num').value = s.num;
-                document.getElementById('s_zip').value = s.zip; document.getElementById('s_city').value = s.city; document.getElementById('s_vat').value = s.vat; supRes.classList.add('d-none');
-            };
-            supRes.appendChild(a);
-        });
-        supRes.classList.remove('d-none');
+        if (data.length > 0) {
+            supRes.innerHTML = '';
+            data.forEach(s => {
+                const a = document.createElement('a');
+                a.className = "list-group-item list-group-item-action";
+                a.innerHTML = `<strong>${s.name}</strong> - ${s.city}`;
+                a.onclick = () => {
+                    supIn.value = s.name;
+                    document.getElementById('s_street').value = s.street;
+                    document.getElementById('s_num').value = s.num;
+                    document.getElementById('s_zip').value = s.zip;
+                    document.getElementById('s_city').value = s.city;
+                    supRes.classList.add('d-none'); // Sluit dropdown
+                };
+                supRes.appendChild(a);
+            });
+            supRes.classList.remove('d-none');
+        }
     });
+
+    document.addEventListener('click', e => { if (e.target !== supIn) supRes.classList.add('d-none'); });
 
     function calc() {
         let grand = 0;
         document.querySelectorAll('#orderLines tr').forEach(row => {
-            const q = row.querySelector('.qty').value || 0; const p = row.querySelector('.price').value || 0; const t = row.querySelector('.tax-sel').value;
-            const total = (q * p) * (1 + (t/100)); row.querySelector('.line-total').innerText = '€ ' + total.toFixed(2); grand += total;
+            const q = row.querySelector('.qty').value || 0;
+            const p = row.querySelector('.price').value || 0;
+            const t = row.querySelector('.tax-sel').value;
+            const total = (q * p) * (1 + (t/100));
+            row.querySelector('.line-total').innerText = '€ ' + total.toFixed(2);
+            grand += total;
         });
         document.getElementById('grandtotal').innerText = '€ ' + grand.toFixed(2);
     }
     document.getElementById('orderLines').addEventListener('input', calc);
     document.getElementById('addRow').addEventListener('click', () => {
-        const tr = `<tr><td><input type="text" name="desc[]" class="form-control" required></td><td><input type="number" name="qty[]" class="form-control qty" value="1"></td><td><input type="number" name="price[]" class="form-control price" step="0.01" value="0.00"></td><td><select name="tax[]" class="form-select form-select-sm tax-sel"><option value="21">21%</option><option value="6">6%</option><option value="0">0%</option></select></td><td class="line-total text-end">€ 0.00</td><td><button type="button" class="btn btn-danger btn-sm removeRow">×</button></td></tr>`;
+        const tr = `<tr><td><input type="text" name="desc[]" class="form-control" required></td><td><input type="number" name="qty[]" class="form-control qty" value="1"></td><td><input type="number" name="price[]" class="form-control price" step="0.01" value="0.00"></td><td><select name="tax[]" class="form-select form-select-sm tax-sel"><option value="21">21%</option><option value="6">6%</option><option value="0">0%</option></select></td><td class="line-total text-end fw-bold">€ 0.00</td><td><button type="button" class="btn btn-danger btn-sm removeRow">×</button></td></tr>`;
         document.getElementById('orderLines').insertAdjacentHTML('beforeend', tr);
     });
     document.getElementById('orderLines').addEventListener('click', e => { if(e.target.classList.contains('removeRow')) { e.target.closest('tr').remove(); calc(); }});

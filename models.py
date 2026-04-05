@@ -9,9 +9,9 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100), nullable=False)
-    role = db.Column(db.String(20), nullable=False) # 'Personeel', 'BO', 'Directie', 'Admin'
-    department = db.Column(db.String(20))
-    department_code = db.Column(db.String(5)) # Nieuw: bijv. 'TD', 'ICT', 'PO'
+    role = db.Column(db.String(20), nullable=False) # Personeel, BO, Directie, Admin
+    department = db.Column(db.String(50))
+    department_code = db.Column(db.String(5))
     min_attachment_limit = db.Column(db.Float, default=500.0) 
     max_bo_limit = db.Column(db.Float, default=1000.0)       
     approver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -30,20 +30,23 @@ class Supplier(db.Model):
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    order_number = db.Column(db.String(50), unique=True) # De slimme referentie
+    order_number = db.Column(db.String(50), unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(30), default='Concept')
-    reference = db.Column(db.String(200)) # Extra omschrijving user
+    reference = db.Column(db.String(200))
     total_amount = db.Column(db.Float, default=0.0)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
-    attachment_path = db.Column(db.String(200))
     
-    # Goedkeurings-data (Unieke stempels)
+    # Reden voor afwijzing
+    rejection_reason = db.Column(db.Text)
+    
+    # Validatie BO
     bo_approval_code = db.Column(db.String(50))
     bo_approval_date = db.Column(db.DateTime)
     bo_name = db.Column(db.String(100))
     
+    # Validatie Directie
     dir_approval_code = db.Column(db.String(50))
     dir_approval_date = db.Column(db.DateTime)
     dir_name = db.Column(db.String(100))
