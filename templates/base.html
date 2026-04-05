@@ -6,17 +6,9 @@
     <title>Delacroix Bestelbonnen</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    
     <style>
-        .btn-delacroix-orange {
-            background-color: #e05e00;
-            color: white;
-            border-color: #e05e00;
-        }
-        .btn-delacroix-orange:hover {
-            background-color: #cc5500;
-            color: white;
-        }
+        .btn-delacroix-orange { background-color: #e05e00; color: white; border-color: #e05e00; }
+        .btn-delacroix-orange:hover { background-color: #cc5500; color: white; }
         body { background-color: #f8f9fa; }
     </style>
 </head>
@@ -26,25 +18,18 @@
             <a class="navbar-brand fw-bold text-uppercase" href="{{ url_for('dashboard') }}">
                 <i class="bi bi-box-seam me-2 text-warning"></i>Delacroix
             </a>
-            
             {% if current_user.is_authenticated %}
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('my_orders') }}"><i class="bi bi-list-ul me-1"></i>Mijn Bonnen</a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('my_orders') }}"><i class="bi bi-list-ul me-1"></i>Mijn Bonnen</a></li>
                     {% if current_user.role in ['BO', 'Directie', 'Admin'] %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('approve_list') }}"><i class="bi bi-shield-check me-1"></i>Te Beoordelen</a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('approve_list') }}"><i class="bi bi-shield-check me-1"></i>Te Beoordelen</a></li>
                     {% endif %}
                     {% if current_user.role == 'Admin' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('setup') }}"><i class="bi bi-gear-fill me-1"></i>Setup</a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('setup') }}"><i class="bi bi-gear-fill me-1"></i>Setup</a></li>
                     {% endif %}
                 </ul>
                 <span class="navbar-text me-3 small text-light">
@@ -62,7 +47,7 @@
                 {% for category, message in messages %}
                     <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
                         {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 {% endfor %}
             {% endif %}

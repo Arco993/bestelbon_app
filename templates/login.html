@@ -1,33 +1,29 @@
 {% extends "base.html" %}
-
 {% block content %}
-<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
-    <div class="col-md-5">
-        <div class="card shadow-lg p-4 text-center">
-            <div class="card-body">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="Delacroix Logo" class="mb-4" style="height: 100px;">
-                
-                <h3 class="fw-bold text-dark mb-1">Uw zorg, onze zorg.</h3>
-                <p class="text-muted mb-4">Log in op het bestelbonnen-portaal.</p>
-
-                <form method="POST">
-                    <div class="form-floating mb-3 text-start">
-                        <input type="text" name="username" class="form-control" id="userInput" placeholder="Gebruikersnaam" required>
-                        <label for="userInput">Gebruikersnaam</label>
-                    </div>
-                    <div class="form-floating mb-4 text-start">
-                        <input type="password" name="password" class="form-control" id="passInput" placeholder="Wachtwoord" required>
-                        <label for="passInput">Wachtwoord</label>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-delacroix-orange btn-lg w-100 shadow">
-                        <i class="bi bi-shield-lock-fill me-2"></i> Beveiligd Inloggen
-                    </button>
-                </form>
-            </div>
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="card shadow-lg border-0" style="width: 100%; max-width: 400px;">
+        <div class="card-header bg-dark text-white text-center py-4">
+            <h4 class="mb-0 fw-bold text-uppercase"><i class="bi bi-box-seam text-warning me-2"></i>Delacroix</h4>
+            <small class="text-light">Bestelbonnen Portaal</small>
         </div>
-        <div class="text-center mt-3 text-muted small">
-            &copy; 2024 Stichting M.M. Delacroix
+        <div class="card-body p-4 bg-white">
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-muted text-uppercase">Gebruikersnaam</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-secondary"></i></span>
+                        <input type="text" name="username" class="form-control border-start-0 ps-0" required autofocus>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-muted text-uppercase">Wachtwoord</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-key text-secondary"></i></span>
+                        <input type="password" name="password" class="form-control border-start-0 ps-0" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-delacroix-orange w-100 fw-bold py-2 shadow-sm">Aanmelden</button>
+            </form>
         </div>
     </div>
 </div>

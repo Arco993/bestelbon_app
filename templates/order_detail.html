@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+
 {% block content %}
 <div class="container pb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -9,70 +10,85 @@
     </div>
 
     {% if order.status == 'Afgewezen' %}
-    <div class="alert alert-danger shadow-sm mb-4">
-        <h5 class="fw-bold"><i class="bi bi-x-octagon-fill me-2"></i>Afgewezen</h5>
+    <div class="alert alert-danger shadow-sm mb-4 border-0 border-start border-danger border-4">
+        <h5 class="fw-bold"><i class="bi bi-x-octagon-fill me-2"></i>Deze bon is afgewezen</h5>
         <p class="mb-0"><strong>Reden:</strong> {{ order.rejection_reason }}</p>
     </div>
     {% endif %}
 
     <div class="row">
         <div class="col-md-8">
-            <div class="card shadow-sm mb-4">
+            <div class="card shadow-sm mb-4 border-0">
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6 mb-3 text-start">
-                            <h6 class="text-muted small fw-bold">Aanvrager</h6>
+                            <h6 class="text-muted small fw-bold text-uppercase">Aanvrager</h6>
                             <p class="mb-0"><strong>{{ order.user.username }}</strong></p>
                             <p class="text-muted small">{{ order.user.department }}</p>
                         </div>
                         <div class="col-md-6 mb-3 text-md-end">
-                            <h6 class="text-muted small fw-bold">Leverancier</h6>
+                            <h6 class="text-muted small fw-bold text-uppercase">Leverancier</h6>
                             <p class="mb-0"><strong>{{ order.supplier.name }}</strong></p>
                             <p class="text-muted small mb-0">{{ order.supplier.street }} {{ order.supplier.house_number }}</p>
                             <p class="text-muted small">{{ order.supplier.zip_code }} {{ order.supplier.city }}</p>
                         </div>
                     </div>
+                    <hr>
+                    <h6 class="text-muted small fw-bold text-uppercase">Referentie / Project</h6>
+                    <p>{{ order.reference or 'Geen projectomschrijving opgegeven' }}</p>
                 </div>
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-white fw-bold">Artikelen</div>
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white fw-bold">Bestelde Artikelen</div>
                 <div class="card-body p-0">
-                    <table class="table mb-0">
-                        <thead class="table-light"><tr><th>Omschrijving</th><th class="text-center">Aantal</th><th class="text-end">Totaal (in)</th></tr></thead>
-                        <tbody>
-                            {% for line in order.lines %}
-                            <tr>
-                                <td>{{ line.description }}</td>
-                                <td class="text-center">{{ line.quantity }}</td>
-                                <td class="text-end fw-bold">€ {{ "%.2f"|format((line.quantity * line.unit_price) * (1 + line.tax_rate/100)) }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                        <tfoot class="table-light"><tr><td colspan="2" class="text-end fw-bold">Totaal:</td><td class="text-end fw-bold text-primary fs-5">€ {{ "%.2f"|format(order.total_amount) }}</td></tr></tfoot>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead class="table-light">
+                                <tr><th>Omschrijving</th><th class="text-center">Aantal</th><th class="text-end">Prijs (ex)</th><th class="text-end">Totaal (in)</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for line in order.lines %}
+                                <tr>
+                                    <td>{{ line.description }}</td>
+                                    <td class="text-center">{{ line.quantity }}</td>
+                                    <td class="text-end">€ {{ "%.2f"|format(line.unit_price) }}</td>
+                                    <td class="text-end fw-bold">€ {{ "%.2f"|format((line.quantity * line.unit_price) * (1 + line.tax_rate/100)) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr><td colspan="3" class="text-end fw-bold">Eindtotaal:</td><td class="text-end fw-bold text-primary fs-5">€ {{ "%.2f"|format(order.total_amount) }}</td></tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card shadow-sm mb-4">
+            <div class="card shadow-sm mb-4 border-0">
                 <div class="card-header bg-dark text-white fw-bold">Digitale Validatie</div>
                 <div class="card-body bg-light">
-                    <div class="mb-3 p-2 border-start border-4 {% if order.bo_approval_code %}border-success bg-white{% else %}border-secondary{% endif %}">
+                    <div class="mb-3 p-2 border-start border-4 {% if order.bo_approval_code %}border-success bg-white shadow-sm{% else %}border-secondary{% endif %}">
                         <small class="text-muted d-block small fw-bold">Diensthoofd (BO):</small>
                         {% if order.bo_approval_code %}
-                            <strong class="text-success small">GEVALIDEEERD</strong><br><span class="small">{{ order.bo_name }}</span>
+                            <strong class="text-success small"><i class="bi bi-check-circle-fill me-1"></i> GEVALIDEERD</strong><br>
+                            <span class="small">{{ order.bo_name }}</span><br>
+                            <code class="text-dark extra-small">{{ order.bo_approval_code }}</code>
                         {% else %}
-                            <span class="text-muted small italic">Nog niet behandeld</span>
+                            <span class="text-muted small fst-italic">Nog niet behandeld</span>
                         {% endif %}
                     </div>
-                    <div class="p-2 border-start border-4 {% if order.dir_approval_code %}border-success bg-white{% else %}border-secondary{% endif %}">
+                    
+                    <div class="p-2 border-start border-4 {% if order.dir_approval_code %}border-success bg-white shadow-sm{% else %}border-secondary{% endif %}">
                         <small class="text-muted d-block small fw-bold">Directie:</small>
                         {% if order.dir_approval_code %}
-                            <strong class="text-success small">GEVALIDEERD</strong><br><span class="small">{{ order.dir_name }}</span>
+                            <strong class="text-success small"><i class="bi bi-check-circle-fill me-1"></i> GEVALIDEERD</strong><br>
+                            <span class="small">{{ order.dir_name }}</span><br>
+                            <code class="text-dark extra-small">{{ order.dir_approval_code }}</code>
                         {% else %}
-                            <span class="text-muted small italic">Nog niet behandeld</span>
+                            <span class="text-muted small fst-italic">Nog niet behandeld</span>
                         {% endif %}
                     </div>
                 </div>
@@ -80,22 +96,40 @@
 
             {% if (current_user.role == 'BO' and order.status == 'Wachten op BO' and order.user.approver_id == current_user.id) or 
                   (current_user.role == 'Directie' and order.status == 'Wachten op Directie') %}
-            <div class="d-grid gap-2">
-                <a href="{{ url_for('approve_order', order_id=order.id) }}" class="btn btn-delacroix-orange btn-lg shadow">Goedkeuren</a>
-                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">Afwijzen met reden</button>
+            <div class="d-grid gap-2 mb-3">
+                <a href="{{ url_for('approve_order', order_id=order.id) }}" class="btn btn-delacroix-orange btn-lg shadow-sm">
+                    <i class="bi bi-check-circle-fill me-2"></i> Goedkeuren
+                </a>
+                <button type="button" class="btn btn-outline-danger shadow-sm" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                    <i class="bi bi-x-circle me-2"></i> Afwijzen met reden
+                </button>
             </div>
             {% endif %}
+            
+            <button onclick="window.print()" class="btn btn-light w-100 border shadow-sm">
+                <i class="bi bi-printer me-2"></i> Afdrukken
+            </button>
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog"><div class="modal-content">
-        <form action="{{ url_for('reject_order', order_id=order.id) }}" method="POST">
-            <div class="modal-header bg-danger text-white"><h5 class="modal-title">Bon Afwijzen</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body"><textarea name="reason" class="form-control" rows="4" placeholder="Reden..." required></textarea></div>
-            <div class="modal-footer"><button type="submit" class="btn btn-danger w-100">Bevestig Afwijzing</button></div>
-        </form>
-    </div></div>
+    <div class="modal-dialog">
+        <div class="modal-content border-0">
+            <form action="{{ url_for('reject_order', order_id=order.id) }}" method="POST">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold">Bestelbon Afwijzen</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="fw-bold small mb-2">Reden voor afwijzing (verplicht):</label>
+                    <textarea name="reason" class="form-control" rows="4" placeholder="Typ hier waarom deze bon niet door kan gaan..." required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger w-100 fw-bold">Definitief Afwijzen</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

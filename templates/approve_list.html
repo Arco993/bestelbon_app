@@ -1,51 +1,26 @@
 {% extends "base.html" %}
-
 {% block content %}
-<div class="container">
-    <h2 class="fw-bold text-dark mb-4">
-        <i class="bi bi-shield-check me-2 text-success"></i>Te Beoordelen Bonnen
-    </h2>
-
+<div class="container pb-5">
+    <h2 class="fw-bold text-dark mb-4"><i class="bi bi-shield-check me-2 text-success"></i>Te Beoordelen Bonnen</h2>
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-primary">
-                        <tr>
-                            <th>Aanvrager</th>
-                            <th>Bon Nummer</th>
-                            <th>Leverancier</th>
-                            <th class="text-end">Totaal (Incl.)</th>
-                            <th class="text-center">Huidige Status</th>
-                            <th class="text-center">Actie</th>
-                        </tr>
+                        <tr><th>Aanvrager</th><th>Nummer</th><th>Leverancier</th><th class="text-end">Bedrag</th><th class="text-center">Status</th><th class="text-center">Actie</th></tr>
                     </thead>
                     <tbody>
                         {% for o in orders %}
                         <tr>
-                            <td>
-                                <div class="fw-bold">{{ o.user.username }}</div>
-                                <div class="small text-muted">{{ o.user.department }}</div>
-                            </td>
+                            <td><div class="fw-bold">{{ o.user.username }}</div><div class="small text-muted">{{ o.user.department }}</div></td>
                             <td><span class="badge bg-light text-dark border">{{ o.order_number }}</span></td>
                             <td>{{ o.supplier.name }}</td>
                             <td class="text-end fw-bold text-primary">€ {{ "%.2f"|format(o.total_amount) }}</td>
-                            <td class="text-center">
-                                <span class="badge bg-warning text-dark px-3">{{ o.status }}</span>
-                            </td>
-                            <td class="text-center">
-                                <a href="{{ url_for('order_detail', order_id=o.id) }}" class="btn btn-delacroix-orange btn-sm px-4 shadow-sm">
-                                    <i class="bi bi-search me-1"></i> Beoordelen
-                                </a>
-                            </td>
+                            <td class="text-center"><span class="badge bg-warning text-dark">{{ o.status }}</span></td>
+                            <td class="text-center"><a href="{{ url_for('order_detail', order_id=o.id) }}" class="btn btn-delacroix-orange btn-sm px-4">Beoordelen</a></td>
                         </tr>
                         {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <i class="bi bi-check2-all display-4 d-block mb-2 text-success"></i>
-                                Geweldig! Er zijn geen bonnen die op jouw actie wachten.
-                            </td>
-                        </tr>
+                        <tr><td colspan="6" class="text-center py-5 text-muted">Geen bonnen die op jouw actie wachten.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
