@@ -28,6 +28,28 @@
                     </div>
                 </div>
 
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-primary text-white fw-bold"><i class="bi bi-bell-fill me-2"></i>E-mail Notificaties</div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" name="notify_on_update" id="notifySwitch" checked>
+                            <label class="form-check-label fw-bold small" for="notifySwitch">Houd mij op de hoogte via mail</label>
+                        </div>
+                        
+                        <div id="notificationOptions">
+                            <label class="small fw-bold text-muted d-block mb-2">Wanneer wil je een mail?</label>
+                            <div class="form-check small mb-1">
+                                <input class="form-check-input" type="radio" name="notification_type" id="notifyFinal" value="Final" checked>
+                                <label class="form-check-label" for="notifyFinal">Alleen bij volledige goedkeuring</label>
+                            </div>
+                            <div class="form-check small">
+                                <input class="form-check-input" type="radio" name="notification_type" id="notifyStep" value="Every Step">
+                                <label class="form-check-label" for="notifyStep">Bij elke stap (BO & Directie)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-dark text-white fw-bold">Leverancier</div>
                     <div class="card-body">
@@ -104,6 +126,12 @@
 </div>
 
 <script>
+    // Toggle notificatie opties op basis van switch
+    document.getElementById('notifySwitch').addEventListener('change', function() {
+        document.getElementById('notificationOptions').style.opacity = this.checked ? '1' : '0.5';
+        document.querySelectorAll('input[name="notification_type"]').forEach(el => el.disabled = !this.checked);
+    });
+
     function calcTotal() {
         let total = 0;
         const rows = document.querySelectorAll('#linesTable tbody tr');
@@ -136,51 +164,48 @@
         }
     }
 
-    // --- LEVERANCIER AUTO-AANVULLEN LOGICA ---
-const supplierInput = document.getElementById('supplierSearch');
-const searchResults = document.getElementById('searchResults');
+    const supplierInput = document.getElementById('supplierSearch');
+    const searchResults = document.getElementById('searchResults');
 
-supplierInput.addEventListener('input', function() {
-    const query = this.value;
-    if (query.length < 2) {
-        searchResults.style.display = 'none';
-        return;
-    }
+    supplierInput.addEventListener('input', function() {
+        const query = this.value;
+        if (query.length < 2) {
+            searchResults.style.display = 'none';
+            return;
+        }
 
-    fetch(`/search_supplier?q=${query}`)
-        .then(response => response.json())
-        .then(data => {
-            searchResults.innerHTML = '';
-            if (data.length > 0) {
-                data.forEach(s => {
-                    const li = document.createElement('li');
-                    li.classList.add('list-group-item', 'list-group-item-action');
-                    li.style.cursor = 'pointer';
-                    li.innerHTML = `<strong>${s.name}</strong> <small class="text-muted">(${s.city})</small>`;
-                    li.onclick = function() {
-                        // Vul de velden in
-                        supplierInput.value = s.name;
-                        document.getElementById('street').value = s.street || '';
-                        document.getElementById('house_number').value = s.num || '';
-                        document.getElementById('zip_code').value = s.zip || '';
-                        document.getElementById('city').value = s.city || '';
-                        document.getElementById('supplier_vat').value = s.vat || '';
-                        searchResults.style.display = 'none';
-                    };
-                    searchResults.appendChild(li);
-                });
-                searchResults.style.display = 'block';
-            } else {
-                searchResults.style.display = 'none';
-            }
-        });
-});
+        fetch(`/search_supplier?q=${query}`)
+            .then(response => response.json())
+            .then(data => {
+                searchResults.innerHTML = '';
+                if (data.length > 0) {
+                    data.forEach(s => {
+                        const li = document.createElement('li');
+                        li.classList.add('list-group-item', 'list-group-item-action');
+                        li.style.cursor = 'pointer';
+                        li.innerHTML = `<strong>${s.name}</strong> <small class="text-muted">(${s.city})</small>`;
+                        li.onclick = function() {
+                            supplierInput.value = s.name;
+                            document.getElementById('street').value = s.street || '';
+                            document.getElementById('house_number').value = s.num || '';
+                            document.getElementById('zip_code').value = s.zip || '';
+                            document.getElementById('city').value = s.city || '';
+                            document.getElementById('supplier_vat').value = s.vat || '';
+                            searchResults.style.display = 'none';
+                        };
+                        searchResults.appendChild(li);
+                    });
+                    searchResults.style.display = 'block';
+                } else {
+                    searchResults.style.display = 'none';
+                }
+            });
+    });
 
-// Sluit resultaten als je buiten het veld klikt
-document.addEventListener('click', function(e) {
-    if (e.target !== supplierInput) {
-        searchResults.style.display = 'none';
-    }
-});
+    document.addEventListener('click', function(e) {
+        if (e.target !== supplierInput) {
+            searchResults.style.display = 'none';
+        }
+    });
 </script>
 {% endblock %}

@@ -43,10 +43,25 @@
                         
                         <hr>
                         
+                        <div class="mb-3">
+                            <label class="small fw-bold text-primary"><i class="bi bi-envelope-at me-1"></i>E-mail Notificaties</label>
+                            <select name="email_notification_freq" class="form-select form-select-sm mb-2">
+                                <option value="Direct">Direct bij nieuwe bon</option>
+                                <option value="Dagelijks">Dagelijkse samenvatting</option>
+                                <option value="Nooit">Geen e-mails</option>
+                            </select>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text small">Tijdstip samenvatting</span>
+                                <input type="time" name="digest_time" class="form-control" value="08:00">
+                            </div>
+                        </div>
+
+                        <hr>
+
                         <div class="row g-2 mb-2">
                             <div class="col-12">
                                 <label class="small fw-bold text-success"><i class="bi bi-magic me-1"></i>Auto-Goedkeuring t/m (€)</label>
-                                <input type="number" name="auto_approve_limit" class="form-control form-control-sm" value="50" placeholder="0 = Altijd goedkeuring nodig">
+                                <input type="number" name="auto_approve_limit" class="form-control form-control-sm" value="50">
                             </div>
                         </div>
                         <div class="row g-2 mb-3">
@@ -84,7 +99,7 @@
                                     <th>Code</th>
                                     <th>Rol</th>
                                     <th>Goedkeuringsregels</th>
-                                    <th>Goedkeurder</th>
+                                    <th>E-mail</th>
                                     <th class="text-center">Actie</th>
                                 </tr>
                             </thead>
@@ -102,22 +117,20 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <small class="text-muted d-block">
-                                            <i class="bi bi-magic text-success"></i> Auto t/m € {{ u.auto_approve_limit }}
-                                        </small>
-                                        <small class="text-muted d-block">
-                                            <i class="bi bi-paperclip"></i> Bijlage > € {{ u.min_attachment_limit }}
-                                        </small>
-                                        <small class="text-muted d-block">
-                                            <i class="bi bi-building"></i> Directie > € {{ u.max_bo_limit }}
-                                        </small>
+                                        <small class="text-muted d-block"><i class="bi bi-magic text-success"></i> Auto t/m € {{ u.auto_approve_limit }}</small>
+                                        <small class="text-muted d-block"><i class="bi bi-paperclip"></i> Bijlage > € {{ u.min_attachment_limit }}</small>
+                                        <small class="text-muted d-block"><i class="bi bi-building"></i> Directie > € {{ u.max_bo_limit }}</small>
                                     </td>
                                     <td>
-                                        {% if u.approver_id %}
-                                            {% for a in users if a.id == u.approver_id %}{{ a.username }}{% endfor %}
-                                        {% else %}
-                                            <span class="text-success small fw-bold">Geen (Zelfstandig)</span>
-                                        {% endif %}
+                                        <small class="fw-bold d-block">
+                                            {% if u.email_notification_freq == 'Direct' %}
+                                                <i class="bi bi-lightning-fill text-warning"></i> Direct
+                                            {% elif u.email_notification_freq == 'Dagelijks' %}
+                                                <i class="bi bi-clock-history text-primary"></i> {{ u.digest_time }}
+                                            {% else %}
+                                                <i class="bi bi-bell-slash text-muted"></i> Nooit
+                                            {% endif %}
+                                        </small>
                                     </td>
                                     <td class="text-center">
                                         <button class="btn btn-sm btn-outline-primary fw-bold" data-bs-toggle="modal" data-bs-target="#editModal{{ u.id }}">
@@ -177,14 +190,28 @@
                         <label class="btn btn-outline-danger btn-sm" for="edit_role_admin_{{ u.id }}">Admin</label>
                     </div>
 
-                    <label class="small fw-bold text-muted">Nieuw Wachtwoord</label>
-                    <input type="password" name="password" class="form-control mb-3" placeholder="Leeg laten om te behouden...">
-                    
                     <hr>
+                    <label class="small fw-bold text-primary mb-2"><i class="bi bi-envelope-at me-1"></i>E-mail Notificatie Instellingen</label>
+                    <div class="row g-2 mb-3">
+                        <div class="col-7">
+                            <select name="email_notification_freq" class="form-select">
+                                <option value="Direct" {% if u.email_notification_freq == 'Direct' %}selected{% endif %}>Direct</option>
+                                <option value="Dagelijks" {% if u.email_notification_freq == 'Dagelijks' %}selected{% endif %}>Dagelijkse samenvatting</option>
+                                <option value="Nooit" {% if u.email_notification_freq == 'Nooit' %}selected{% endif %}>Geen e-mails</option>
+                            </select>
+                        </div>
+                        <div class="col-5">
+                            <input type="time" name="digest_time" class="form-control" value="{{ u.digest_time or '08:00' }}">
+                        </div>
+                    </div>
+                    <hr>
+
+                    <label class="small fw-bold text-muted">Nieuw Wachtwoord (optioneel)</label>
+                    <input type="password" name="password" class="form-control mb-3" placeholder="Leeg laten om te behouden...">
                     
                     <div class="row mb-3">
                         <div class="col-12 mb-2">
-                            <label class="small fw-bold text-success"><i class="bi bi-magic me-1"></i>Auto-Goedkeuring t/m (€)</label>
+                            <label class="small fw-bold text-success">Auto-Goedkeuring t/m (€)</label>
                             <input type="number" name="auto_approve_limit" class="form-control" value="{{ u.auto_approve_limit }}">
                         </div>
                         <div class="col-6">
@@ -199,7 +226,7 @@
                     
                     <label class="small fw-bold text-muted">Vaste Goedkeurder</label>
                     <select name="approver_id" class="form-select">
-                        <option value="" class="fw-bold text-success">Geen (Zelfstandig Bestellen)</option>
+                        <option value="" class="fw-bold text-success">Geen (Zelfstandig)</option>
                         {% for a in approvers if a.id != u.id %}
                             <option value="{{ a.id }}" {% if u.approver_id == a.id %}selected{% endif %}>{{ a.username }} ({{ a.role }})</option>
                         {% endfor %}
