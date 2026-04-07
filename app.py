@@ -276,40 +276,65 @@ def setup_demo():
         db.drop_all()
         db.create_all()
         
-        sup = Supplier(name="Dell Technologies", city="Brussel", vat_number="BE0123456789")
-        db.session.add(sup)
+        # 1. Leveranciers
+        dell = Supplier(name="Dell Technologies", city="Brussel", vat_number="BE0123456789")
+        bol = Supplier(name="Bol.com", city="Antwerpen", vat_number="BE0987654321")
+        db.session.add_all([dell, bol])
         db.session.commit()
 
-        admin = User(username='admin', password='test', role='Admin', department_code='ADM')
-        bo = User(username='bo', password='test', role='BO', department_code='TD')
-        directie = User(username='directie', password='test', role='Directie', department_code='DIR')
-        
-        db.session.add_all([admin, bo, directie])
+        # 2. Gebruikers aanmaken met echte namen
+        # Directie
+        marc = User(username='Marc_Directie', password='test', role='Directie', department_code='DIR', email='marc@stichting.be')
+        db.session.add(marc)
+        db.session.commit()
+
+        # Budgethouder (Sophie rapporteert aan Marc)
+        sophie = User(username='Sophie_BO', password='test', role='BO', department_code='TD', 
+                      approver_id=marc.id, max_bo_limit=1000.0, email='sophie@stichting.be')
+        db.session.add(sophie)
+        db.session.commit()
+
+        # Personeel (Jan rapporteert aan Sophie)
+        jan = User(username='Jan_Personeel', password='test', role='Personeel', department_code='TD', 
+                    approver_id=sophie.id, auto_approve_limit=50.0, email='jan@stichting.be')
+        db.session.add(jan)
         db.session.commit()
         
+        # 3. Scenario-bonnen voor Jan
+        
+        # BON 1: Kleine aankoop (Auto-approve indien < 50)
         b1 = Order(
-            order_number="ADM-2026-001", 
-            reference="Demo Laptops ICT", 
-            total_amount=2500.0, 
-            status="Wachten op Directie", 
-            user_id=admin.id,
-            supplier_id=sup.id
+            order_number="TD-2026-001", reference="Batterijen en muis", 
+            total_amount=35.0, status="Goedgekeurd", 
+            user_id=jan.id, supplier_id=bol.id
         )
+
+        # BON 2: Gereedschap (Moet langs Sophie/BO want > 50)
         b2 = Order(
-            order_number="TD-2026-050", 
-            reference="Kantoormateriaal", 
-            total_amount=120.0, 
-            status="Goedgekeurd", 
-            user_id=admin.id,
-            supplier_id=sup.id,
-            bo_name="bo",
-            bo_approval_date=datetime.now()
+            order_number="TD-2026-002", reference="Boormachine Set", 
+            total_amount=250.0, status="Wachten op BO", 
+            user_id=jan.id, supplier_id=bol.id
+        )
+
+        # BON 3: Grote investering (Moet langs Sophie én Marc want > 1000)
+        b3 = Order(
+            order_number="TD-2026-003", reference="Nieuwe Werkbanken", 
+            total_amount=1500.0, status="Wachten op BO", 
+            user_id=jan.id, supplier_id=dell.id
         )
         
-        db.session.add_all([b1, b2])
+        db.session.add_all([b1, b2, b3])
         db.session.commit()
         
-        return "<h1>✅ Demo data geladen!</h1><p>Log in met <b>admin</b> / <b>test</b></p>"
+        return """
+        <h1>✅ Demo data met namen geladen!</h1>
+        <ul>
+            <li><b>Jan_Personeel</b> (ww: test) - De aanvrager</li>
+            <li><b>Sophie_BO</b> (ww: test) - De budgethouder (keurt Jan goed)</li>
+            <li><b>Marc_Directie</b> (ww: test) - De directie (keurt Sophie/Jan goed bij > €1000)</li>
+        </ul>
+        <p><a href='/login'>Ga naar Login</a></p>
+        """
     except Exception as e:
         return f"<h1>❌ Fout: {str(e)}</h1>"
 
