@@ -256,14 +256,31 @@ def add_user():
 @app.route('/edit_user/<int:user_id>', methods=['POST'])
 @login_required
 def edit_user(user_id):
+    if current_user.role != 'Admin': 
+        return redirect(url_for('dashboard'))
+    
     u = User.query.get_or_404(user_id)
-    u.username, u.email, u.role, u.department, u.department_code = request.form.get('username'), request.form.get('email'), request.form.get('role'), request.form.get('department'), request.form.get('department_code')
-    u.min_attachment_limit, u.max_bo_limit, u.auto_approve_limit = float(request.form.get('min_attachment_limit') or 500), float(request.form.get('max_bo_limit') or 1000), float(request.form.get('auto_approve_limit') or 50)
-    u.email_notification_freq, u.digest_time = request.form.get('email_notification_freq', 'Direct'), request.form.get('digest_time', '08:00')
-    app_id = request.form.get('approver_id')
-    u.approver_id = int(app_id) if app_id else None
-    if request.form.get('password'): u.password = request.form.get('password')
-    db.session.commit()
+    try:
+        # Basis gegevens
+        u.username = request.form.get('username')
+        u.email = request.form.get('email')
+        u.role = request.form.get('role')
+        u.department_code = request.form.get('department_code')
+        
+        # Approver koppelen
+        app_id = request.form.get('approver_id')
+        u.approver_id = int(app_id) if app_id and app_id != "" else None
+        
+        # Wachtwoord alleen aanpassen als er iets is ingevuld
+        if request.form.get('password'):
+            u.password = request.form.get('password')
+            
+        db.session.commit()
+        flash(f'Gebruiker {u.username} succesvol bijgewerkt.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Fout bij bijwerken: {str(e)}', 'danger')
+        
     return redirect(url_for('setup'))
 
 # --- DE SETUP-DEMO ROUTE (MET KOEN, BERT, STIJN & ARNE) ---
