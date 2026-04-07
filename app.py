@@ -284,19 +284,19 @@ def setup_demo():
 
         # 2. Gebruikers aanmaken met echte namen
         # Directie
-        marc = User(username='Marc_Directie', password='test', role='Directie', department_code='DIR', email='marc@stichting.be')
+        marc = User(username='Koen', password='test', role='Directie', department_code='DIR', email='koen@stichting.be')
         db.session.add(marc)
         db.session.commit()
 
         # Budgethouder (Sophie rapporteert aan Marc)
-        sophie = User(username='Sophie_BO', password='test', role='BO', department_code='TD', 
-                      approver_id=marc.id, max_bo_limit=1000.0, email='sophie@stichting.be')
+        sophie = User(username='Bert', password='test', role='BO', department_code='TD', 
+                      approver_id=marc.id, max_bo_limit=1000.0, email='bert@stichting.be')
         db.session.add(sophie)
         db.session.commit()
 
         # Personeel (Jan rapporteert aan Sophie)
-        jan = User(username='Jan_Personeel', password='test', role='Personeel', department_code='TD', 
-                    approver_id=sophie.id, auto_approve_limit=50.0, email='jan@stichting.be')
+        jan = User(username='Stijn', password='test', role='Personeel', department_code='TD', 
+                    approver_id=sophie.id, auto_approve_limit=50.0, email='stijn@stichting.be')
         db.session.add(jan)
         db.session.commit()
         
