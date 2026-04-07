@@ -282,61 +282,64 @@ def setup_demo():
         db.session.add_all([dell, bol])
         db.session.commit()
 
-        # 2. Gebruikers aanmaken met echte namen
-        # Directie
-        marc = User(username='Koen', password='test', role='Directie', department_code='DIR', email='koen@stichting.be')
+        # 2. Gebruikers aanmaken (Wachtwoord overal: test)
+        
+        # De Admin (Jijzelf voor de instellingen)
+        admin = User(username='Arne_Admin', password='test', role='Admin', department_code='ICT', email='arne@stichting.be')
+        db.session.add(admin)
+        db.session.commit()
+
+        # De Directie (Marc - de eindverantwoordelijke)
+        marc = User(username='Marc_Directie', password='test', role='Directie', department_code='DIR', email='marc@stichting.be')
         db.session.add(marc)
         db.session.commit()
 
-        # Budgethouder (Sophie rapporteert aan Marc)
-        sophie = User(username='Bert', password='test', role='BO', department_code='TD', 
-                      approver_id=marc.id, max_bo_limit=1000.0, email='bert@stichting.be')
+        # Budgethouder (Sophie - keurt Jan goed, rapporteert aan Marc)
+        sophie = User(username='Sophie_BO', password='test', role='BO', department_code='TD', 
+                      approver_id=marc.id, max_bo_limit=1000.0, email='sophie@stichting.be')
         db.session.add(sophie)
         db.session.commit()
 
-        # Personeel (Jan rapporteert aan Sophie)
-        jan = User(username='Stijn', password='test', role='Personeel', department_code='TD', 
-                    approver_id=sophie.id, auto_approve_limit=50.0, email='stijn@stichting.be')
+        # Personeel (Jan - de aanvrager, rapporteert aan Sophie)
+        jan = User(username='Jan_Personeel', password='test', role='Personeel', department_code='TD', 
+                    approver_id=sophie.id, auto_approve_limit=50.0, email='jan@stichting.be')
         db.session.add(jan)
         db.session.commit()
         
-        # 3. Scenario-bonnen voor Jan
+        # 3. Scenario-bonnen voor Jan (De "Storyline" van je demo)
         
-        # BON 1: Kleine aankoop (Auto-approve indien < 50)
-        b1 = Order(
-            order_number="TD-2026-001", reference="Batterijen en muis", 
-            total_amount=35.0, status="Goedgekeurd", 
-            user_id=jan.id, supplier_id=bol.id
-        )
+        # Bon A: Kleine aankoop (Direct goedgekeurd)
+        b1 = Order(order_number="TD-2026-001", reference="Batterijen en muis", 
+                   total_amount=35.0, status="Goedgekeurd", user_id=jan.id, supplier_id=bol.id)
 
-        # BON 2: Gereedschap (Moet langs Sophie/BO want > 50)
-        b2 = Order(
-            order_number="TD-2026-002", reference="Boormachine Set", 
-            total_amount=250.0, status="Wachten op BO", 
-            user_id=jan.id, supplier_id=bol.id
-        )
+        # Bon B: Gereedschap (Ligt nu bij Sophie ter goedkeuring)
+        b2 = Order(order_number="TD-2026-002", reference="Boormachine Set", 
+                   total_amount=250.0, status="Wachten op BO", user_id=jan.id, supplier_id=bol.id)
 
-        # BON 3: Grote investering (Moet langs Sophie én Marc want > 1000)
-        b3 = Order(
-            order_number="TD-2026-003", reference="Nieuwe Werkbanken", 
-            total_amount=1500.0, status="Wachten op BO", 
-            user_id=jan.id, supplier_id=dell.id
-        )
+        # Bon C: Grote investering (Ligt ook bij Sophie, maar moet daarna naar Marc)
+        b3 = Order(order_number="TD-2026-003", reference="Nieuwe Werkbanken", 
+                   total_amount=1500.0, status="Wachten op BO", user_id=jan.id, supplier_id=dell.id)
         
         db.session.add_all([b1, b2, b3])
         db.session.commit()
         
         return """
-        <h1>✅ Demo data met namen geladen!</h1>
-        <ul>
-            <li><b>Jan_Personeel</b> (ww: test) - De aanvrager</li>
-            <li><b>Sophie_BO</b> (ww: test) - De budgethouder (keurt Jan goed)</li>
-            <li><b>Marc_Directie</b> (ww: test) - De directie (keurt Sophie/Jan goed bij > €1000)</li>
-        </ul>
-        <p><a href='/login'>Ga naar Login</a></p>
+        <div style="font-family: sans-serif; padding: 20px; line-height: 1.6;">
+            <h1 style="color: #28a745;">✅ Demo-omgeving staat klaar!</h1>
+            <p>Gebruik de volgende accounts (wachtwoord overal: <b>test</b>):</p>
+            <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%;">
+                <tr style="background: #f8f9fa;"><th>Gebruikersnaam</th><th>Rol</th><th>Functie in Demo</th></tr>
+                <tr><td><b>Arne_Admin</b></td><td>Admin</td><td>Instellingen & Beheer laten zien</td></tr>
+                <tr><td><b>Jan_Personeel</b></td><td>Personeel</td><td>Nieuwe aanvragen indienen</td></tr>
+                <tr><td><b>Sophie_BO</b></td><td>BO</td><td>Eerste goedkeuring (€250 & €1500)</td></tr>
+                <tr><td><b>Marc_Directie</b></td><td>Directie</td><td>Eind goedkeuring (> €1000)</td></tr>
+            </table>
+            <br>
+            <a href='/login' style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">Naar Login</a>
+        </div>
         """
     except Exception as e:
-        return f"<h1>❌ Fout: {str(e)}</h1>"
+        return f"<h1 style='color: red;'>❌ Fout: {str(e)}</h1>"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
