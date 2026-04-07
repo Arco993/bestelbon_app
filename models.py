@@ -13,18 +13,13 @@ class User(db.Model, UserMixin):
     department = db.Column(db.String(50))
     department_code = db.Column(db.String(5))
     
-    # Limieten
     min_attachment_limit = db.Column(db.Float, default=500.0) 
     max_bo_limit = db.Column(db.Float, default=1000.0)
     auto_approve_limit = db.Column(db.Float, default=50.0)
-           
+            
     approver_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     dark_mode = db.Column(db.Boolean, default=False)
-
-    # --- NIEUW: E-MAIL NOTIFICATIE INSTELLINGEN (VOOR GOEDKEURDERS) ---
-    # Keuzes: 'Direct', 'Dagelijks', 'Nooit'
     email_notification_freq = db.Column(db.String(20), default='Direct')
-    # Tijdstip voor dagelijkse samenvatting (bijv. "08:00")
     digest_time = db.Column(db.String(5), default='08:00')
     
     orders = db.relationship('Order', backref='user', lazy=True)
@@ -51,10 +46,7 @@ class Order(db.Model):
     
     attachment_filename = db.Column(db.String(255))
     rejection_reason = db.Column(db.Text)
-    
-    # --- NIEUW: NOTIFICATIE VOORKEUREN PER BON (VOOR DE MAKER) ---
     notify_on_update = db.Column(db.Boolean, default=True)
-    # Keuzes: 'Every Step' (BO én Directie) of 'Final' (Alleen als volledig klaar)
     notification_type = db.Column(db.String(20), default='Final')
 
     bo_approval_code = db.Column(db.String(50))

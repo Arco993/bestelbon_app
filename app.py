@@ -46,16 +46,13 @@ def load_user(user_id):
 def send_status_mail(recipient, subject, body):
     if recipient:
         try:
-            msg = Message(subject, recipients=[recipient])
-            msg.body = body
-            # mail.send(msg) 
             print(f"E-mail simulatie naar {recipient}: {subject}")
         except Exception as e:
             print(f"E-mail fout: {e}")
 
 # --- BASIS ROUTES ---
 @app.route('/')
-def index(): 
+def index():
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -70,7 +67,7 @@ def login():
 
 @app.route('/dashboard')
 @login_required
-def dashboard(): 
+def dashboard():
     return render_template('dashboard.html')
 
 @app.route('/logout')
@@ -97,7 +94,7 @@ def new_order():
 
         s_name = request.form.get('supplier_name')
         supplier = Supplier.query.filter_by(name=s_name).first() or Supplier(
-            name=s_name, street=request.form.get('street'), house_number=request.form.get('house_number'), 
+            name=s_name, street=request.form.get('street'), house_number=request.form.get('house_number'),
             zip_code=request.form.get('zip_code'), city=request.form.get('city'), vat_number=request.form.get('supplier_vat')
         )
         if not supplier.id: db.session.add(supplier); db.session.flush()
@@ -122,7 +119,7 @@ def new_order():
                 status = 'Wachten op Directie' if current_user.role == 'BO' else 'Wachten op BO'
 
         order = Order(
-            order_number=gen_ref, reference=request.form.get('reference'), user_id=current_user.id, 
+            order_number=gen_ref, reference=request.form.get('reference'), user_id=current_user.id,
             supplier_id=supplier.id, status=status, total_amount=total_inc, attachment_filename=attachment_name,
             notify_on_update=True if request.form.get('notify_on_update') == 'on' else False,
             notification_type=request.form.get('notification_type', 'Final')
@@ -130,7 +127,7 @@ def new_order():
         db.session.add(order); db.session.flush()
         for i in range(len(descs)):
             db.session.add(OrderLine(order_id=order.id, description=descs[i], quantity=int(float(qtys[i])), unit_price=float(prices[i]), tax_rate=float(taxes[i])))
-        
+       
         db.session.commit()
         flash(f'Bon {gen_ref} verwerkt.', 'success')
         return redirect(url_for('my_orders'))
@@ -186,7 +183,7 @@ def approve_order(order_id):
         order.status = 'Wachten op Directie' if order.total_amount > order.user.max_bo_limit else 'Goedgekeurd'
     elif current_user.role == 'Directie' and order.status == 'Wachten op Directie':
         order.dir_approval_code, order.dir_approval_date, order.dir_name, order.status = stamp, now, current_user.username, 'Goedgekeurd'
-    
+   
     db.session.commit()
     if order.notify_on_update and (order.status == 'Goedgekeurd' or order.notification_type == 'Every Step'):
         send_status_mail(order.user.email, f"Update {order.order_number}", f"Status: {order.status}")
@@ -229,10 +226,10 @@ def setup():
 @app.route('/add_user', methods=['POST'])
 @login_required
 def add_user():
+    if current_user.role != 'Admin': return redirect(url_for('dashboard'))
     email = request.form.get('email')
     username = request.form.get('username')
 
-    # Check of username of email al bestaan
     existing_user = User.query.filter((User.username == username) | (User.email == email)).first()
     if existing_user:
         flash('Fout: Gebruikersnaam of E-mailadres is al in gebruik!', 'danger')
@@ -261,6 +258,7 @@ def add_user():
 @app.route('/edit_user/<int:user_id>', methods=['POST'])
 @login_required
 def edit_user(user_id):
+    if current_user.role != 'Admin': return redirect(url_for('dashboard'))
     u = User.query.get_or_404(user_id)
     u.username, u.email, u.role, u.department, u.department_code = request.form.get('username'), request.form.get('email'), request.form.get('role'), request.form.get('department'), request.form.get('department_code')
     u.min_attachment_limit, u.max_bo_limit, u.auto_approve_limit = float(request.form.get('min_attachment_limit') or 500), float(request.form.get('max_bo_limit') or 1000), float(request.form.get('auto_approve_limit') or 50)
@@ -269,33 +267,51 @@ def edit_user(user_id):
     u.approver_id = int(app_id) if app_id else None
     if request.form.get('password'): u.password = request.form.get('password')
     db.session.commit()
+    flash('Gebruiker bijgewerkt.', 'success')
     return redirect(url_for('setup'))
 
 @app.route('/setup-demo')
 def setup_demo():
-    from werkzeug.security import generate_password_hash
-    
-    # 1. Wis de lege database op Render en bouw de tabellen opnieuw op
-    db.drop_all()
-    db.create_all()
-    
-    # 2. Maak testgebruikers aan (pas de 'role' aan naar jouw exacte benamingen)
-    admin = User(username='admin', password=generate_password_hash('test'), role='Admin')
-    bo = User(username='budgethouder', password=generate_password_hash('test'), role='BO')
-    directie = User(username='directie', password=generate_password_hash('test'), role='Directie')
-    
-    db.session.add_all([admin, bo, directie])
-    db.session.commit() # Commit om de ID's te genereren
-    
-    # 3. Maak 3 perfecte testbonnen aan voor je demo
-    b1 = Order(beschrijving="Nieuwe Laptops ICT", bedrag=2500.00, leverancier="Dell", status="In Wacht", user_id=admin.id)
-    b2 = Order(beschrijving="Kantoormeubilair", bedrag=850.00, leverancier="IKEA", status="Goedgekeurd BO", user_id=admin.id)
-    b3 = Order(beschrijving="Gereedschap TD", bedrag=120.00, leverancier="Gamma", status="Volledig Goedgekeurd", user_id=admin.id)
-    
-    db.session.add_all([b1, b2, b3])
-    db.session.commit()
-    
-    return "<h1>✅ Demo data is succesvol geladen!</h1><p>Ga terug naar de inlogpagina en log in met <b>admin</b> en wachtwoord <b>test</b>.</p>"
+    try:
+        db.drop_all()
+        db.create_all()
+        
+        sup = Supplier(name="Dell Technologies", city="Brussel", vat_number="BE0123456789")
+        db.session.add(sup)
+        db.session.commit()
+
+        admin = User(username='admin', password='test', role='Admin', department_code='ADM')
+        bo = User(username='bo', password='test', role='BO', department_code='TD')
+        directie = User(username='directie', password='test', role='Directie', department_code='DIR')
+        
+        db.session.add_all([admin, bo, directie])
+        db.session.commit()
+        
+        b1 = Order(
+            order_number="ADM-2026-001", 
+            reference="Demo Laptops ICT", 
+            total_amount=2500.0, 
+            status="Wachten op Directie", 
+            user_id=admin.id,
+            supplier_id=sup.id
+        )
+        b2 = Order(
+            order_number="TD-2026-050", 
+            reference="Kantoormateriaal", 
+            total_amount=120.0, 
+            status="Goedgekeurd", 
+            user_id=admin.id,
+            supplier_id=sup.id,
+            bo_name="bo",
+            bo_approval_date=datetime.now()
+        )
+        
+        db.session.add_all([b1, b2])
+        db.session.commit()
+        
+        return "<h1>✅ Demo data geladen!</h1><p>Log in met <b>admin</b> / <b>test</b></p>"
+    except Exception as e:
+        return f"<h1>❌ Fout: {str(e)}</h1>"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
