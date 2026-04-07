@@ -271,5 +271,31 @@ def edit_user(user_id):
     db.session.commit()
     return redirect(url_for('setup'))
 
+@app.route('/setup-demo')
+def setup_demo():
+    from werkzeug.security import generate_password_hash
+    
+    # 1. Wis de lege database op Render en bouw de tabellen opnieuw op
+    db.drop_all()
+    db.create_all()
+    
+    # 2. Maak testgebruikers aan (pas de 'role' aan naar jouw exacte benamingen)
+    admin = User(username='admin', password=generate_password_hash('test'), role='Admin')
+    bo = User(username='budgethouder', password=generate_password_hash('test'), role='BO')
+    directie = User(username='directie', password=generate_password_hash('test'), role='Directie')
+    
+    db.session.add_all([admin, bo, directie])
+    db.session.commit() # Commit om de ID's te genereren
+    
+    # 3. Maak 3 perfecte testbonnen aan voor je demo
+    b1 = Order(beschrijving="Nieuwe Laptops ICT", bedrag=2500.00, leverancier="Dell", status="In Wacht", user_id=admin.id)
+    b2 = Order(beschrijving="Kantoormeubilair", bedrag=850.00, leverancier="IKEA", status="Goedgekeurd BO", user_id=admin.id)
+    b3 = Order(beschrijving="Gereedschap TD", bedrag=120.00, leverancier="Gamma", status="Volledig Goedgekeurd", user_id=admin.id)
+    
+    db.session.add_all([b1, b2, b3])
+    db.session.commit()
+    
+    return "<h1>✅ Demo data is succesvol geladen!</h1><p>Ga terug naar de inlogpagina en log in met <b>admin</b> en wachtwoord <b>test</b>.</p>"
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
