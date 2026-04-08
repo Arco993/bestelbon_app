@@ -60,7 +60,7 @@
                             <td class="text-center">
                                 <span class="badge {% if o.status == 'Goedgekeurd' %}bg-success{% elif o.status == 'Afgewezen' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ o.status }}</span>
                             </td>
-                            <td class="text-end"><a href="{{ url_for('order_detail', order_id=o.id) }}" class="btn btn-sm btn-outline-primary">Bekijken</a></td>
+                            <td class="text-end"><a href="{{ url_for('order_detail', order_id=o.id) }}" class="btn btn-sm btn-custom btn-edit">Bekijken</a></td>
                         </tr>
                         {% endfor %}
                     </tbody>

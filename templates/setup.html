@@ -6,7 +6,7 @@
             {% if current_user.role == 'Admin' %}Gebruikersbeheer{% else %}Mijn Team Beheren{% endif %}
         </h2>
         {% if current_user.role == 'Admin' %}
-        <a href="{{ url_for('manage_departments') }}" class="btn btn-outline-primary fw-bold shadow-sm">
+        <a href="{{ url_for('manage_departments') }}" class="btn-custom btn-edit" fw-bold shadow-sm">
             <i class="bi bi-building me-1"></i> Afdelingen Beheren
         </a>
         {% endif %}
@@ -135,7 +135,7 @@
                                         <small class="text-muted d-block"><i class="bi bi-envelope"></i> {{ u.email_notification_freq }}</small>
                                     </td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-primary fw-bold" data-bs-toggle="modal" data-bs-target="#editModal{{ u.id }}">
+                                        <button class="btn btn-sm btn-custom btn-edit fw-bold" data-bs-toggle="modal" data-bs-target="#editModal{{ u.id }}">
                                             Aanpassen
                                         </button>
                                     </td>
@@ -220,7 +220,7 @@
                     </div>
                 </div>
                 <div class="modal-footer bg-light border-0">
-                    <button type="submit" class="btn btn-success fw-bold w-100 shadow-sm">Wijzigingen Opslaan</button>
+                    <button type="submit" class="btn btn-custom btn-save fw-bold w-100 shadow-sm">Wijzigingen Opslaan</button>
                 </div>
             </form>
         </div>

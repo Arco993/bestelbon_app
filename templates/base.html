@@ -8,71 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     
-    <style>
-        /* --- DELACROIX HUISSTIJL --- */
-        :root {
-            --delacroix-orange: #f29200;
-            --delacroix-orange-hover: #d17d00;
-            --delacroix-text: #7a4329;
-            --delacroix-teal: #008b8b;
-        }
-
-        body { 
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            padding-bottom: 2rem;
-            background-color: var(--bs-body-bg);
-        }
-
-        /* De 5-kleurige Huisstijl Balk */
-        .brand-bar {
-            height: 6px;
-            width: 100%;
-            background: linear-gradient(to right, 
-                #009fe3 0%, #009fe3 20%, 
-                #f29200 20%, #f29200 40%, 
-                #8dc63f 40%, #8dc63f 60%, 
-                #e4007d 60%, #e4007d 80%, 
-                #0054a4 80%, #0054a4 100%);
-        }
-
-        .navbar-custom {
-            background-color: var(--bs-body-bg);
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-        }
-
-        /* --- MENU KNOPPEN IN DE 5 HUISSTIJLKLEUREN --- */
-        .btn-brand-cyan { background-color: #009fe3; color: white; border: none; }
-        .btn-brand-cyan:hover { background-color: #0088cc; color: white; }
-
-        .btn-brand-green { background-color: #8dc63f; color: white; border: none; }
-        .btn-brand-green:hover { background-color: #7ab236; color: white; }
-
-        .btn-brand-pink { background-color: #e4007d; color: white; border: none; }
-        .btn-brand-pink:hover { background-color: #cc0070; color: white; }
-
-        .btn-brand-blue { background-color: #0054a4; color: white; border: none; }
-        .btn-brand-blue:hover { background-color: #004588; color: white; }
-
-        .btn-brand-orange { background-color: #f29200; color: white; border: none; }
-        .btn-brand-orange:hover { background-color: #d17d00; color: white; }
-        
-        .nav-btn {
-            font-weight: 600;
-            padding: 0.5rem 1rem;
-            transition: transform 0.1s ease;
-        }
-        .nav-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .theme-toggle-btn {
-            background: none;
-            border: none;
-            color: var(--bs-body-color);
-            cursor: pointer;
-        }
-    </style>
-
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
     <script>
         const storedTheme = localStorage.getItem('theme');
         {% if current_user.is_authenticated %}
@@ -135,7 +72,6 @@
                 </a>
                 {% endif %}
 
-                {# Fase 2: Gedelegeerd beheer voor BO's #}
                 {% if current_user.role == 'BO' and current_user.can_manage_staff %}
                 <a href="{{ url_for('setup') }}" class="btn btn-brand-orange nav-btn shadow-sm">
                     <i class="bi bi-people-fill me-1"></i>Mijn Team
@@ -166,7 +102,7 @@
                     <span class="text-muted small d-block">
                         <i class="bi bi-person-circle me-1"></i><strong>{{ current_user.username }}</strong>
                     </span>
-                    <span class="badge bg-light text-dark border extra-small" style="font-size: 0.7rem;">
+                    <span class="badge bg-light text-dark border extra-small">
                         {{ current_user.dept.code if current_user.dept else 'GEEN' }}
                     </span>
                 </div>
@@ -175,13 +111,6 @@
             {% endif %}
         </div>
     </nav>
-
-    <script>
-        if (document.documentElement.getAttribute('data-bs-theme') === 'dark') {
-            document.getElementById('themeIcon')?.classList.replace('bi-moon-stars-fill', 'bi-sun-fill');
-            document.getElementById('themeIcon')?.classList.add('text-warning');
-        }
-    </script>
 
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -199,5 +128,11 @@
     {% block content %}{% endblock %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        if (document.documentElement.getAttribute('data-bs-theme') === 'dark') {
+            document.getElementById('themeIcon')?.classList.replace('bi-moon-stars-fill', 'bi-sun-fill');
+            document.getElementById('themeIcon')?.classList.add('text-warning');
+        }
+    </script>
 </body>
 </html>

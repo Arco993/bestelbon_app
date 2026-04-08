@@ -1,0 +1,77 @@
+/* --- DELACROIX HUISSTIJL VARIABELEN --- */
+:root {
+    --delacroix-cyan: #009fe3;
+    --delacroix-orange: #f29200;
+    --delacroix-green: #8dc63f;
+    --delacroix-pink: #e4007d;
+    --delacroix-blue: #0054a4;
+    --delacroix-text: #7a4329;
+    --delacroix-teal: #008b8b;
+}
+
+/* --- BASIS STYLING --- */
+body { 
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    padding-bottom: 2rem;
+    background-color: var(--bs-body-bg);
+}
+
+/* De 5-kleurige Huisstijl Balk */
+.brand-bar {
+    height: 6px;
+    width: 100%;
+    background: linear-gradient(to right, 
+        #009fe3 0%, #009fe3 20%, 
+        #f29200 20%, #f29200 40%, 
+        #8dc63f 40%, #8dc63f 60%, 
+        #e4007d 60%, #e4007d 80%, 
+        #0054a4 80%, #0054a4 100%);
+}
+
+.navbar-custom {
+    background-color: var(--bs-body-bg);
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+/* --- NAVIGATIE & KNOPPEN LOGICA --- */
+.nav-btn, .btn-custom {
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    transition: transform 0.1s ease, filter 0.2s ease;
+    border: none !important;
+    color: white !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nav-btn:hover, .btn-custom:hover {
+    transform: translateY(-2px);
+    filter: brightness(90%);
+}
+
+/* --- KLEUR-CATEGORIEËN (GEEN WITTE KNOPPEN MEER) --- */
+/* Cyan: Navigatie & Bewerken */
+.btn-brand-cyan, .btn-edit { background-color: var(--delacroix-cyan) !important; }
+
+/* Groen: Goedkeuren & Opslaan */
+.btn-brand-green, .btn-save, .btn-approve { background-color: var(--delacroix-green) !important; }
+
+/* Pink: Historiek & Afwijzen/Verwijderen */
+.btn-brand-pink, .btn-reject, .btn-delete { background-color: var(--delacroix-pink) !important; }
+
+/* Blue: Archief & Info */
+.btn-brand-blue, .btn-archive, .btn-info-custom { background-color: var(--delacroix-blue) !important; }
+
+/* Orange: Nieuwe acties & Setup */
+.btn-brand-orange, .btn-submit, .btn-delacroix-orange { background-color: var(--delacroix-orange) !important; }
+
+/* Theme Toggle */
+.theme-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--bs-body-color);
+    cursor: pointer;
+}
+
+.extra-small {
+    font-size: 0.7rem;
+}

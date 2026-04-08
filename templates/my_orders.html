@@ -22,7 +22,7 @@
                             <td class="text-center">
                                 <span class="badge {% if o.status == 'Goedgekeurd' %}bg-success{% elif o.status == 'Afgewezen' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ o.status }}</span>
                             </td>
-                            <td class="text-end"><a href="{{ url_for('order_detail', order_id=o.id) }}" class="btn btn-sm btn-outline-primary px-3">Bekijken</a></td>
+                            <td class="text-end"><a href="{{ url_for('order_detail', order_id=o.id) }}" class="btn btn-sm btn-custom btn-edit px-3">Bekijken</a></td>
                         </tr>
                         {% else %}
                         <tr><td colspan="6" class="text-center py-5 text-muted">Je hebt nog geen bonnen.</td></tr>
