@@ -5,7 +5,7 @@ from werkzeug.utils import secure_filename
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from models import db, User, Order, OrderLine, Supplier
+from models import db, User, Order, OrderLine, Supplier, Department
 
 app = Flask(__name__)
 
@@ -62,7 +62,6 @@ def index():
 def login():
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form.get('username')).first()
-        # FIX: Directe vergelijking voor demo-gemak
         if user and user.password == request.form.get('password'):
             login_user(user)
             return redirect(url_for('dashboard'))
@@ -86,6 +85,49 @@ def toggle_theme():
     current_user.dark_mode = request.get_json().get('dark_mode', False)
     db.session.commit()
     return jsonify({'success': True})
+
+# --- AFDELINGSBEHEER ---
+@app.route('/admin/departments', methods=['GET', 'POST'])
+@login_required
+def manage_departments():
+    if current_user.role != 'Admin': 
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        name = request.form.get('name').strip()
+        code = request.form.get('code', '').strip().upper()
+        director_id = request.form.get('director_id')
+
+        if not name or not code:
+            flash("Naam en Code zijn verplicht!", "danger")
+            return redirect(url_for('manage_departments'))
+
+        existing_dept = Department.query.filter(
+            (Department.name.ilike(name)) | (Department.code == code)
+        ).first()
+
+        if existing_dept:
+            flash(f"Fout: Afdeling met naam '{name}' of code '{code}' bestaat al!", "warning")
+            return redirect(url_for('manage_departments'))
+
+        try:
+            new_dept = Department(
+                name=name,
+                code=code,
+                director_id=int(director_id) if director_id else None
+            )
+            db.session.add(new_dept)
+            db.session.commit()
+            flash(f"Afdeling {name} succesvol toegevoegd.", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Er is iets misgegaan: {str(e)}", "danger")
+        
+        return redirect(url_for('manage_departments'))
+        
+    depts = Department.query.all()
+    directors = User.query.filter_by(role='Directie').all()
+    return render_template('manage_departments.html', departments=depts, directors=directors)
 
 # --- BESTELBON ROUTES ---
 @app.route('/order/new', methods=['GET', 'POST'])
@@ -117,7 +159,9 @@ def new_order():
 
         status = 'Concept'
         if request.form.get('action') == 'submit':
-            if not current_user.approver_id or total_inc <= current_user.auto_approve_limit:
+            if current_user.allow_auto_approve and total_inc <= current_user.auto_approve_limit:
+                status = 'Goedgekeurd'
+            elif not current_user.approver_id:
                 status = 'Goedgekeurd'
             else:
                 status = 'Wachten op Directie' if current_user.role == 'BO' else 'Wachten op BO'
@@ -136,7 +180,8 @@ def new_order():
         flash(f'Bon {gen_ref} verwerkt.', 'success')
         return redirect(url_for('my_orders'))
 
-    next_ref = f"{current_user.department_code or 'GEN'}-{datetime.now().year}-{secrets.token_hex(2).upper()}"
+    dept_code = current_user.dept.code if current_user.department_id else 'GEN'
+    next_ref = f"{dept_code}-{datetime.now().year}-{secrets.token_hex(2).upper()}"
     ap = User.query.get(current_user.approver_id) if current_user.approver_id else None
     return render_template('new_order.html', next_ref=next_ref, approver_name=ap.username if ap else "Direct goedgekeurd")
 
@@ -161,8 +206,10 @@ def order_pdf(order_id):
 @login_required
 def approve_list():
     if current_user.role not in ['BO', 'Directie', 'Admin']: return redirect(url_for('dashboard'))
+    
     if current_user.role == 'Directie':
-        orders = Order.query.filter_by(status='Wachten op Directie').all()
+        managed_dept_ids = [d.id for d in current_user.managed_departments]
+        orders = Order.query.join(User).filter(User.department_id.in_(managed_dept_ids), Order.status == 'Wachten op Directie').all()
     elif current_user.role == 'BO':
         sub_ids = [u.id for u in User.query.filter_by(approver_id=current_user.id).all()]
         orders = Order.query.filter(Order.user_id.in_(sub_ids), Order.status == 'Wachten op BO').all()
@@ -211,8 +258,10 @@ def all_orders():
     query = Order.query.join(User).join(Supplier)
     if q_sup: query = query.filter(Supplier.name.ilike(f"%{q_sup}%"))
     if q_st: query = query.filter(Order.status == q_st)
-    if q_dt: query = query.filter(User.department_code == q_dt)
-    depts = [d[0] for d in db.session.query(User.department_code).distinct().all()]
+    if q_dt: 
+        query = query.join(Department).filter(Department.code == q_dt)
+        
+    depts = [d.code for d in Department.query.all()]
     return render_template('all_orders.html', orders=query.order_by(Order.created_at.desc()).all(), departments=depts, q_supplier=q_sup, q_status=q_st, q_dept=q_dt)
 
 @app.route('/search_supplier')
@@ -224,12 +273,27 @@ def search_supplier():
 @app.route('/setup')
 @login_required
 def setup():
-    if current_user.role != 'Admin': return redirect(url_for('dashboard'))
-    return render_template('setup.html', users=User.query.all(), approvers=User.query.filter(User.role.in_(['BO', 'Directie', 'Admin'])).all())
+    if current_user.role != 'Admin' and not (current_user.role == 'BO' and current_user.can_manage_staff):
+        flash("Je hebt geen rechten voor deze pagina.", "danger")
+        return redirect(url_for('dashboard'))
+    
+    if current_user.role == 'Admin':
+        users = User.query.all()
+        approvers = User.query.filter(User.role.in_(['BO', 'Directie', 'Admin'])).all()
+        depts = Department.query.all()
+    else:
+        users = User.query.filter_by(department_id=current_user.department_id).all()
+        approvers = User.query.filter((User.id == current_user.id) | (User.id == current_user.dept.director_id)).all()
+        depts = [current_user.dept]
+
+    return render_template('setup.html', users=users, approvers=approvers, departments=depts)
 
 @app.route('/add_user', methods=['POST'])
 @login_required
 def add_user():
+    if current_user.role != 'Admin' and not (current_user.role == 'BO' and current_user.can_manage_staff):
+        return redirect(url_for('dashboard'))
+
     email = request.form.get('email')
     username = request.form.get('username')
     existing_user = User.query.filter((User.username == username) | (User.email == email)).first()
@@ -237,13 +301,25 @@ def add_user():
         flash('Fout: Gebruikersnaam of E-mailadres is al in gebruik!', 'danger')
         return redirect(url_for('setup'))
 
+    target_dept_id = request.form.get('department_id')
+    if current_user.role == 'BO':
+        target_dept_id = current_user.department_id
+
+    # STRIKTE BEVEILIGING: Alleen Admin mag can_manage_staff toekennen
+    can_staff = False
+    if current_user.role == 'Admin':
+        can_staff = True if request.form.get('can_manage_staff') == 'on' else False
+
     app_id = request.form.get('approver_id')
     u = User(
         username=username, email=email, password=request.form.get('password'),
-        role=request.form.get('role'), department=request.form.get('department'), department_code=request.form.get('department_code'),
+        role=request.form.get('role'), 
+        department_id=target_dept_id,
         min_attachment_limit=float(request.form.get('min_attachment_limit') or 500),
         max_bo_limit=float(request.form.get('max_bo_limit') or 1000),
-        auto_approve_limit=float(request.form.get('auto_approve_limit') or 50),
+        allow_auto_approve=True if request.form.get('allow_auto_approve') == 'on' else False,
+        can_manage_staff=can_staff,
+        auto_approve_limit=float(request.form.get('auto_approve_limit') or 0),
         approver_id=int(app_id) if app_id else None,
         email_notification_freq=request.form.get('email_notification_freq', 'Direct'),
         digest_time=request.form.get('digest_time', '08:00')
@@ -256,73 +332,84 @@ def add_user():
 @app.route('/edit_user/<int:user_id>', methods=['POST'])
 @login_required
 def edit_user(user_id):
-    if current_user.role != 'Admin': 
+    if current_user.role != 'Admin' and not (current_user.role == 'BO' and current_user.can_manage_staff):
         return redirect(url_for('dashboard'))
-    
+
     u = User.query.get_or_404(user_id)
+    if current_user.role == 'BO' and u.department_id != current_user.department_id:
+        flash("Geen rechten om deze gebruiker te bewerken.", "danger")
+        return redirect(url_for('setup'))
+
     try:
-        # Basis gegevens
         u.username = request.form.get('username')
         u.email = request.form.get('email')
         u.role = request.form.get('role')
-        u.department_code = request.form.get('department_code')
         
-        # Approver koppelen
+        if current_user.role == 'Admin':
+            u.department_id = request.form.get('department_id')
+            # STRIKTE BEVEILIGING: Alleen Admin mag dit wijzigen
+            u.can_manage_staff = True if request.form.get('can_manage_staff') == 'on' else False
+
+        u.allow_auto_approve = True if request.form.get('allow_auto_approve') == 'on' else False
+        u.auto_approve_limit = float(request.form.get('auto_approve_limit') or 0)
+        u.max_bo_limit = float(request.form.get('max_bo_limit') or 1000)
+        
         app_id = request.form.get('approver_id')
         u.approver_id = int(app_id) if app_id and app_id != "" else None
-        
-        # Wachtwoord alleen aanpassen als er iets is ingevuld
-        if request.form.get('password'):
-            u.password = request.form.get('password')
+        if request.form.get('password'): u.password = request.form.get('password')
             
         db.session.commit()
-        flash(f'Gebruiker {u.username} succesvol bijgewerkt.', 'success')
+        flash(f'Gebruiker {u.username} bijgewerkt.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Fout bij bijwerken: {str(e)}', 'danger')
-        
+        flash(f'Fout: {str(e)}', 'danger')
     return redirect(url_for('setup'))
 
-# --- DE SETUP-DEMO ROUTE (MET KOEN, BERT, STIJN & ARNE) ---
+# --- SETUP-DEMO ---
 @app.route('/setup-demo')
 def setup_demo():
     try:
         db.drop_all()
         db.create_all()
         
-        # Leveranciers
-        dell = Supplier(name="Dell Technologies", city="Brussel")
-        bol = Supplier(name="Bol.com", city="Antwerpen")
-        db.session.add_all([dell, bol])
-        db.session.commit()
+        koen = User(username='Koen', password='test', role='Directie') 
+        marie = User(username='Marie', password='test', role='Directie') 
+        jan = User(username='Jan', password='test', role='Directie') 
+        db.session.add_all([koen, marie, jan])
+        db.session.flush()
 
-        # Gebruikers (Wachtwoord overal: test)
-        koen = User(username='Koen', password='test', role='Directie', department_code='DIR')
-        db.session.add(koen)
-        db.session.commit()
+        td_dept = Department(name="Technische Dienst", code="TD", director_id=koen.id)
+        zorg_dept = Department(name="Zorg", code="ZORG", director_id=marie.id)
+        ict_dept = Department(name="ICT", code="ICT", director_id=jan.id)
+        db.session.add_all([td_dept, zorg_dept, ict_dept])
+        db.session.flush()
 
-        bert = User(username='Bert', password='test', role='BO', department_code='TD', approver_id=1, max_bo_limit=1000.0)
+        bert = User(username='Bert', password='test', role='BO', 
+                    department_id=td_dept.id, approver_id=koen.id, max_bo_limit=1000.0,
+                    can_manage_staff=True)
         db.session.add(bert)
-        db.session.commit()
+        db.session.flush()
 
-        stijn = User(username='Stijn', password='test', role='Personeel', department_code='TD', approver_id=2, auto_approve_limit=50.0)
+        stijn = User(username='Stijn', password='test', role='Personeel', 
+                     department_id=td_dept.id, approver_id=bert.id, 
+                     allow_auto_approve=True, auto_approve_limit=50.0)
         db.session.add(stijn)
-        db.session.commit()
         
-        arne = User(username='Arne', password='test', role='Admin', department_code='ICT')
+        arne = User(username='Arne', password='test', role='Admin', department_id=ict_dept.id)
         db.session.add(arne)
-        db.session.commit()
 
-        # Scenario-bonnen voor Stijn
-        b1 = Order(order_number="TD-001", reference="Batterijen", total_amount=15.0, status="Goedgekeurd", user_id=stijn.id, supplier_id=bol.id)
-        b2 = Order(order_number="TD-002", reference="Boormachine", total_amount=250.0, status="Wachten op BO", user_id=stijn.id, supplier_id=bol.id)
-        b3 = Order(order_number="TD-003", reference="Laptop Stijn", total_amount=1500.0, status="Wachten op BO", user_id=stijn.id, supplier_id=dell.id)
+        bol = Supplier(name="Bol.com", city="Antwerpen")
+        db.session.add(bol)
+        db.session.flush()
         
-        db.session.add_all([b1, b2, b3])
+        b1 = Order(order_number="TD-001", reference="Test", total_amount=250.0, status="Wachten op BO", 
+                   user_id=stijn.id, supplier_id=bol.id)
+        db.session.add(b1)
+        
         db.session.commit()
-        
-        return "<h1>✅ Database Hersteld!</h1><p>Log in met: Koen, Bert, Stijn of Arne (ww: test)</p>"
+        return "<h1>✅ Fase 2 Database Klaar!</h1><p>Gebruikers: Koen (Dir), Marie (Dir), Jan (Dir), Bert (BO), Stijn (Personeel), Arne (Admin).</p>"
     except Exception as e:
+        db.session.rollback()
         return f"❌ Fout: {str(e)}"
 
 if __name__ == '__main__':

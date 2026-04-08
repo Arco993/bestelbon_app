@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Afdelingsbeheer</h2>
+    <div class="card p-4 mb-4">
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-4">
+                    <input type="text" name="name" class="form-control" placeholder="Naam (bv. Zorg)" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="code" class="form-control" placeholder="Code (bv. ZORG)" required>
+                </div>
+                <div class="col-md-4">
+                    <select name="director_id" class="form-select" required>
+                        <option value="">Koppel Directielid...</option>
+                        {% for dir in directors %}
+                            <option value="{{ dir.id }}">{{ dir.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Toevoegen</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Afdeling</th>
+                <th>Code</th>
+                <th>Verantwoordelijke Directie</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dept in departments %}
+            <tr>
+                <td>{{ dept.name }}</td>
+                <td><span class="badge bg-secondary">{{ dept.code }}</span></td>
+                <td>{{ dept.director.username }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
