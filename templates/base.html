@@ -48,69 +48,71 @@
     </script>
 </head>
 <body>
-    <div class="brand-bar"></div>
+    <div class="header-wrapper">
+        <div class="brand-bar"></div>
 
-    <nav class="navbar navbar-custom mb-4 py-3 shadow-sm">
-        <div class="container-fluid d-flex flex-column flex-lg-row align-items-center gap-3">
-            
-            <a class="navbar-brand m-0" href="{{ url_for('dashboard') }}">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="Delacroix Logo" height="50">
-            </a>
-            
-            {% if current_user.is_authenticated %}
-            <div class="d-flex flex-wrap justify-content-center gap-2 flex-grow-1">
-                <a href="{{ url_for('my_orders') }}" class="btn btn-brand-cyan nav-btn shadow-sm">
-                    <i class="bi bi-list-ul me-1"></i>Mijn Bonnen
+        <nav class="navbar navbar-custom mb-4 py-3 shadow-sm">
+            <div class="container-fluid d-flex flex-column flex-lg-row align-items-center gap-3">
+                
+                <a class="navbar-brand m-0" href="{{ url_for('dashboard') }}">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Delacroix Logo" height="50">
                 </a>
                 
-                {% if current_user.role in ['BO', 'Directie', 'Admin'] %}
-                <a href="{{ url_for('approve_list') }}" class="btn btn-brand-green nav-btn shadow-sm">
-                    <i class="bi bi-shield-check me-1"></i>Te Beoordelen
-                </a>
-                <a href="{{ url_for('my_approvals') }}" class="btn btn-brand-pink nav-btn shadow-sm">
-                    <i class="bi bi-clock-history me-1"></i>Historiek
-                </a>
-                {% endif %}
+                {% if current_user.is_authenticated %}
+                <div class="d-flex flex-wrap justify-content-center gap-2 flex-grow-1">
+                    <a href="{{ url_for('my_orders') }}" class="btn btn-brand-cyan nav-btn shadow-sm">
+                        <i class="bi bi-list-ul me-1"></i>Mijn Bonnen
+                    </a>
+                    
+                    {% if current_user.role in ['BO', 'Directie', 'Admin'] %}
+                    <a href="{{ url_for('approve_list') }}" class="btn btn-brand-green nav-btn shadow-sm">
+                        <i class="bi bi-shield-check me-1"></i>Te Beoordelen
+                    </a>
+                    <a href="{{ url_for('my_approvals') }}" class="btn btn-brand-pink nav-btn shadow-sm">
+                        <i class="bi bi-clock-history me-1"></i>Historiek
+                    </a>
+                    {% endif %}
 
-                {% if current_user.role == 'BO' and current_user.can_manage_staff %}
-                <a href="{{ url_for('setup') }}" class="btn btn-brand-orange nav-btn shadow-sm">
-                    <i class="bi bi-people-fill me-1"></i>Mijn Team
-                </a>
-                {% endif %}
-                
-                {% if current_user.role in ['Directie', 'Admin'] %}
-                <a href="{{ url_for('all_orders') }}" class="btn btn-brand-blue nav-btn shadow-sm">
-                    <i class="bi bi-archive me-1"></i>Groot Archief
-                </a>
-                {% endif %}
-                
-                {% if current_user.role == 'Admin' %}
-                <a href="{{ url_for('manage_departments') }}" class="btn btn-brand-cyan nav-btn shadow-sm">
-                    <i class="bi bi-building me-1"></i>Afdelingen
-                </a>
-                <a href="{{ url_for('setup') }}" class="btn btn-brand-orange nav-btn shadow-sm">
-                    <i class="bi bi-gear-fill me-1"></i>Setup
-                </a>
-                {% endif %}
-            </div>
-
-            <div class="d-flex align-items-center gap-3">
-                <button onclick="toggleTheme()" class="theme-toggle-btn fs-5" title="Schakel donkere modus in/uit">
-                    <i id="themeIcon" class="bi bi-moon-stars-fill"></i>
-                </button>
-                <div class="text-end d-none d-md-block">
-                    <span class="text-muted small d-block">
-                        <i class="bi bi-person-circle me-1"></i><strong>{{ current_user.username }}</strong>
-                    </span>
-                    <span class="badge bg-light text-dark border extra-small">
-                        {{ current_user.dept.code if current_user.dept else 'GEEN' }}
-                    </span>
+                    {% if current_user.role == 'BO' and current_user.can_manage_staff %}
+                    <a href="{{ url_for('setup') }}" class="btn btn-brand-orange nav-btn shadow-sm">
+                        <i class="bi bi-people-fill me-1"></i>Mijn Team
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user.role in ['Directie', 'Admin'] %}
+                    <a href="{{ url_for('all_orders') }}" class="btn btn-brand-blue nav-btn shadow-sm">
+                        <i class="bi bi-archive me-1"></i>Groot Archief
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user.role == 'Admin' %}
+                    <a href="{{ url_for('manage_departments') }}" class="btn btn-brand-cyan nav-btn shadow-sm">
+                        <i class="bi bi-building me-1"></i>Afdelingen
+                    </a>
+                    <a href="{{ url_for('setup') }}" class="btn btn-brand-orange nav-btn shadow-sm">
+                        <i class="bi bi-gear-fill me-1"></i>Setup
+                    </a>
+                    {% endif %}
                 </div>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-sm fw-bold">Uitloggen</a>
+
+                <div class="d-flex align-items-center gap-3">
+                    <button onclick="toggleTheme()" class="theme-toggle-btn fs-5" title="Schakel donkere modus in/uit">
+                        <i id="themeIcon" class="bi bi-moon-stars-fill"></i>
+                    </button>
+                    <div class="text-end d-none d-md-block">
+                        <span class="text-muted small d-block">
+                            <i class="bi bi-person-circle me-1"></i><strong>{{ current_user.username }}</strong>
+                        </span>
+                        <span class="badge bg-light text-dark border extra-small">
+                            {{ current_user.dept.code if current_user.dept else 'GEEN' }}
+                        </span>
+                    </div>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-sm fw-bold">Uitloggen</a>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
-        </div>
-    </nav>
+        </nav>
+    </div>
 
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -126,6 +128,10 @@
     </div>
 
     {% block content %}{% endblock %}
+
+    <footer class="main-footer">
+        &copy; 2026 Stichting Marguerite Marie Delacroix &mdash; Ontwikkeld door AC | Versie 2.0.0 (Development)
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>

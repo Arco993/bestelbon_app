@@ -75,3 +75,29 @@ body {
 .extra-small {
     font-size: 0.7rem;
 }
+/* --- STICKY HEADER LOGICA --- */
+.navbar-custom {
+    background-color: var(--bs-body-bg);
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    position: sticky; /* Zet de balk vast */
+    top: 0;
+    z-index: 1020; /* Zorgt dat de balk boven de rest van de content blijft */
+}
+
+/* --- VOETEINDE STYLING --- */
+.main-footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: 50px;
+    font-size: 0.85em;
+    color: #666;
+    border-top: 1px solid rgba(0,0,0,0.1);
+    background-color: var(--bs-body-bg);
+}
+
+/* Zorg dat de brand-bar ook mee scrollt */
+.header-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+}
