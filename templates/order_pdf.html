@@ -2,136 +2,144 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Bestelbon {{ order.order_number }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <title>Bestelbon_{{ order.order_number }}</title>
     <style>
-        /* A4 Formaat en Print Styling */
-        body { background: white; color: black; font-family: 'Segoe UI', Arial, sans-serif; }
-        .a4-container { width: 100%; max-width: 800px; margin: 0 auto; padding: 40px; }
-        .brand-text { color: #e05e00 !important; font-weight: 900; letter-spacing: 1px; }
+        @page { margin: 1cm; }
+        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 11px; color: #333; line-height: 1.5; }
         
-        @media print {
-            @page { size: A4; margin: 15mm; }
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .no-print { display: none !important; }
-            .a4-container { padding: 0; max-width: 100%; }
+        /* Delacroix Kleuren */
+        .text-primary { color: #0056b3; }
+        .brand-orange { color: #f39200; } /* De Delacroix Oranje */
+
+        .header-table { width: 100%; border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px; }
+        .info-table { width: 100%; margin-bottom: 30px; }
+        .info-table td { width: 50%; vertical-align: top; }
+
+        .label { font-size: 9px; font-weight: bold; color: #888; text-transform: uppercase; margin-bottom: 3px; display: block; }
+        
+        .main-title { text-align: center; margin-bottom: 40px; }
+        .main-title h1 { margin: 0; font-size: 22px; color: #222; }
+        .order-nr { font-size: 16px; font-weight: bold; color: #0056b3; }
+
+        table.items-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        table.items-table th { background-color: #343a40; color: #ffffff; padding: 10px; text-align: left; text-transform: uppercase; font-size: 10px; }
+        table.items-table td { padding: 10px; border-bottom: 1px solid #dee2e6; }
+        
+        .text-end { text-align: right; }
+        .text-center { text-align: center; }
+        .fw-bold { font-weight: bold; }
+
+        .total-box { margin-top: 20px; text-align: right; }
+        .total-amount { font-size: 18px; color: #0056b3; font-weight: bold; }
+
+        .validation-stamp { 
+            margin-top: 50px; 
+            padding: 15px; 
+            border: 2px solid #28a745; 
+            color: #28a745; 
+            border-radius: 10px;
+            display: inline-block;
         }
 
-        .table-custom th { background-color: #f8f9fa !important; border-bottom: 2px solid #000; }
-        .stamp-box { border: 2px solid #198754; color: #198754; border-radius: 8px; padding: 15px; display: inline-block; text-align: center; }
+        .footer { 
+            position: fixed; 
+            bottom: 0; 
+            width: 100%; 
+            font-size: 9px; 
+            color: #999; 
+            text-align: center; 
+            border-top: 1px solid #eee; 
+            padding-top: 10px; 
+        }
     </style>
 </head>
 <body>
-    <div class="text-center mt-3 no-print">
-        <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-file-pdf me-2"></i>Opslaan als PDF</button>
-        <a href="{{ url_for('order_detail', order_id=order.id) }}" class="btn btn-outline-secondary ms-2">Terug naar bon</a>
+    <table class="header-table">
+        <tr>
+            <td>
+                <div style="font-size: 20px; font-weight: bold;">Stichting Marguerite-Marie Delacroix</div>
+                <div style="color: #666;">Middenschoolstraat 10, 3300 Tienen</div>
+            </td>
+            <td class="text-end">
+                <div class="brand-orange" style="font-size: 24px; font-weight: bold;">BESTELBON</div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="main-title">
+        <h1>Bestelbon Referentie</h1>
+        <div class="order-nr">{{ order.order_number }}</div>
     </div>
 
-    <div class="a4-container">
-        <div class="row border-bottom border-dark pb-3 mb-4 align-items-center">
-            <div class="col-6">
-                <h2 class="brand-text text-uppercase mb-0"><i class="bi bi-box-seam me-2"></i>Delacroix</h2>
-                <small class="text-muted">Officiële Bestelbon</small>
-            </div>
-            <div class="col-6 text-end">
-                <h4 class="fw-bold mb-1">BON: {{ order.order_number }}</h4>
-                <p class="mb-0 small"><strong>Datum:</strong> {{ order.created_at.strftime('%d-%m-%Y') }}</p>
-            </div>
-        </div>
+    <table class="info-table">
+        <tr>
+            <td>
+                <span class="label">Aanvrager & Dienst</span>
+                <div class="fw-bold" style="font-size: 13px;">{{ order.user.username }}</div>
+                <div>{{ order.user.dept.name if order.user.dept else 'Algemene Dienst' }}</div>
+                <div>Datum: {{ order.created_at.strftime('%d-%m-%Y') }}</div>
+            </td>
+            <td class="text-end">
+                <span class="label">Leverancier</span>
+                <div class="fw-bold" style="font-size: 13px;">{{ order.supplier.name }}</div>
+                <div>{{ order.supplier.street }} {{ order.supplier.house_number }}</div>
+                <div>{{ order.supplier.zip_code }} {{ order.supplier.city }}</div>
+                <div>BTW: {{ order.supplier.vat_number or 'Vrijgesteld' }}</div>
+            </td>
+        </tr>
+    </table>
 
-        <div class="row mb-5">
-            <div class="col-6">
-                <div class="p-3 bg-light rounded border">
-                    <h6 class="fw-bold text-uppercase border-bottom pb-2 mb-2">Leverancier</h6>
-                    <strong>{{ order.supplier.name }}</strong><br>
-                    {{ order.supplier.street }} {{ order.supplier.house_number }}<br>
-                    {{ order.supplier.zip_code }} {{ order.supplier.city }}<br>
-                    {% if order.supplier.vat_number %}
-                    <small>BTW: {{ order.supplier.vat_number }}</small>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="col-6">
-                <div class="p-3">
-                    <h6 class="fw-bold text-uppercase border-bottom pb-2 mb-2">Aanvrager (Delacroix)</h6>
-                    <strong>{{ order.user.username }}</strong><br>
-                    Afdeling: {{ order.user.department }} ({{ order.user.department_code }})<br>
-                    Email: {{ order.user.email or 'Niet opgegeven' }}
-                </div>
-            </div>
+    <div style="margin-bottom: 20px;">
+        <span class="label">Omschrijving / Project</span>
+        <div style="font-size: 12px; border-left: 3px solid #f39200; padding-left: 10px;">
+            {{ order.reference or 'Geen projectomschrijving' }}
         </div>
-
-        {% if order.reference %}
-        <div class="mb-4">
-            <h6 class="fw-bold text-uppercase">Project / Referentie</h6>
-            <p>{{ order.reference }}</p>
-        </div>
-        {% endif %}
-
-        <table class="table table-custom mb-5">
-            <thead>
-                <tr>
-                    <th style="width: 50%;">Omschrijving</th>
-                    <th class="text-center" style="width: 15%;">Aantal</th>
-                    <th class="text-end" style="width: 15%;">Prijs (ex)</th>
-                    <th class="text-end" style="width: 20%;">Totaal (in)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for line in order.lines %}
-                <tr>
-                    <td>{{ line.description }}</td>
-                    <td class="text-center">{{ line.quantity }}</td>
-                    <td class="text-end">€ {{"%.2f"|format(line.unit_price)}}</td>
-                    <td class="text-end fw-bold">€ {{"%.2f"|format((line.quantity * line.unit_price) * (1 + line.tax_rate/100))}}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="3" class="text-end fw-bold pt-3">EINDTOTAAL (INCL. BTW):</td>
-                    <td class="text-end fw-bold fs-5 pt-3">€ {{"%.2f"|format(order.total_amount)}}</td>
-                </tr>
-            </tfoot>
-        </table>
-
-        {% if order.status == 'Goedgekeurd' %}
-        <div class="mt-5 pt-3 border-top">
-            <h6 class="fw-bold text-uppercase mb-4 text-center">Digitale Validatie</h6>
-            <div class="row text-center">
-                <div class="col-6">
-                    <div class="stamp-box">
-                        <h6 class="fw-bold mb-1 text-uppercase">Gevalideerd (BO)</h6>
-                        <div>{{ order.bo_name }}</div>
-                        <small>{{ order.bo_approval_date.strftime('%d-%m-%Y') }}</small><br>
-                        <code class="text-success small">{{ order.bo_approval_code }}</code>
-                    </div>
-                </div>
-                {% if order.dir_approval_code %}
-                <div class="col-6">
-                    <div class="stamp-box">
-                        <h6 class="fw-bold mb-1 text-uppercase">Gevalideerd (Directie)</h6>
-                        <div>{{ order.dir_name }}</div>
-                        <small>{{ order.dir_approval_date.strftime('%d-%m-%Y') }}</small><br>
-                        <code class="text-success small">{{ order.dir_approval_code }}</code>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% elif order.status == 'Afgewezen' %}
-        <div class="mt-5 text-center text-danger">
-            <h3 class="fw-bold border border-danger p-3 d-inline-block">GEANNULEERD / AFGEWEZEN</h3>
-        </div>
-        {% endif %}
-        
     </div>
 
-    <script>
-        window.onload = function() {
-            window.print();
-        }
-    </script>
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Omschrijving</th>
+                <th class="text-center">Aantal</th>
+                <th class="text-end">Prijs (ex)</th>
+                <th class="text-end">Totaal (incl)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in order.lines %}
+            <tr>
+                <td>{{ line.description }}</td>
+                <td class="text-center">{{ line.quantity }}</td>
+                <td class="text-end">€ {{ "%.2f"|format(line.unit_price) }}</td>
+                <td class="text-end fw-bold">€ {{ "%.2f"|format((line.quantity * line.unit_price) * (1 + line.tax_rate/100)) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="total-box">
+        <span style="font-size: 12px; font-weight: bold;">Totaalbedrag inclusief BTW:</span><br>
+        <span class="total-amount">€ {{ "%.2f"|format(order.total_amount) }}</span>
+    </div>
+
+    <div class="validation-stamp">
+        <div style="font-size: 12px; font-weight: bold; margin-bottom: 5px;">
+            <i class="bi bi-shield-check"></i> DIGITAAL GEVALIDEERD
+        </div>
+        <div style="font-size: 9px; line-height: 1.2;">
+            {% if order.bo_approval_code %}
+            BO Code: {{ order.bo_approval_code }} ({{ order.bo_approval_date.strftime('%d-%m-%Y') }})<br>
+            {% endif %}
+            {% if order.dir_approval_code %}
+            DIR Code: {{ order.dir_approval_code }} ({{ order.dir_approval_date.strftime('%d-%m-%Y') }})<br>
+            {% endif %}
+            Validatienummer: {{ order.order_number }}
+        </div>
+    </div>
+
+    <div class="footer">
+        Stichting Marguerite-Marie Delacroix | BTW BE 0407.728.435 | RPR Leuven<br>
+        Facturatie bij voorkeur digitaal via facturatie@delacroix.be onder vermelding van bovenstaand bonnummer.
+    </div>
 </body>
 </html>

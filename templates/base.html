@@ -7,42 +7,29 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     
+    <style>
+        th.sortable { cursor: pointer; position: relative; }
+        th.sortable:hover { background: rgba(0,0,0,0.05); }
+        th.sortable::after { content: '\21C5'; opacity: 0.3; margin-left: 5px; }
+        .filter-container { max-width: 300px; margin-bottom: 1rem; }
+    </style>
+
     <script>
         const storedTheme = localStorage.getItem('theme');
         {% if current_user.is_authenticated %}
             const userTheme = "{{ 'dark' if current_user.dark_mode else 'light' }}";
             document.documentElement.setAttribute('data-bs-theme', userTheme);
-            localStorage.setItem('theme', userTheme);
-        {% else %}
-            if (storedTheme) { document.documentElement.setAttribute('data-bs-theme', storedTheme); }
         {% endif %}
 
         function toggleTheme() {
             const html = document.documentElement;
-            const currentTheme = html.getAttribute('data-bs-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
+            const newTheme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-bs-theme', newTheme);
             localStorage.setItem('theme', newTheme);
-            
-            const icon = document.getElementById('themeIcon');
-            if(newTheme === 'dark') {
-                icon.classList.replace('bi-moon-stars-fill', 'bi-sun-fill');
-                icon.classList.add('text-warning');
-            } else {
-                icon.classList.replace('bi-sun-fill', 'bi-moon-stars-fill');
-                icon.classList.remove('text-warning');
-            }
-
             {% if current_user.is_authenticated %}
-            fetch('/toggle_theme', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dark_mode: newTheme === 'dark' })
-            });
+            fetch('/toggle_theme', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dark_mode: newTheme === 'dark' }) });
             {% endif %}
         }
     </script>
@@ -50,62 +37,34 @@
 <body>
     <div class="header-wrapper">
         <div class="brand-bar"></div>
-
         <nav class="navbar navbar-custom mb-4 py-3 shadow-sm">
             <div class="container-fluid d-flex flex-column flex-lg-row align-items-center gap-3">
-                
                 <a class="navbar-brand m-0" href="{{ url_for('dashboard') }}">
                     <img src="{{ url_for('static', filename='logo.png') }}" alt="Delacroix Logo" height="50">
                 </a>
-                
                 {% if current_user.is_authenticated %}
                 <div class="d-flex flex-wrap justify-content-center gap-2 flex-grow-1">
-                    <a href="{{ url_for('my_orders') }}" class="btn btn-brand-cyan nav-btn shadow-sm">
-                        <i class="bi bi-list-ul me-1"></i>Mijn Bonnen
-                    </a>
-                    
+                    <a href="{{ url_for('my_orders') }}" class="btn btn-brand-cyan nav-btn shadow-sm">Mijn Bonnen</a>
                     {% if current_user.role in ['BO', 'Directie', 'Admin'] %}
-                    <a href="{{ url_for('approve_list') }}" class="btn btn-brand-green nav-btn shadow-sm">
-                        <i class="bi bi-shield-check me-1"></i>Te Beoordelen
-                    </a>
-                    <a href="{{ url_for('my_approvals') }}" class="btn btn-brand-pink nav-btn shadow-sm">
-                        <i class="bi bi-clock-history me-1"></i>Historiek
-                    </a>
+                    <a href="{{ url_for('approve_list') }}" class="btn btn-brand-green nav-btn shadow-sm">Te Beoordelen</a>
+                    <a href="{{ url_for('my_approvals') }}" class="btn btn-brand-pink nav-btn shadow-sm"><i class="bi bi-clock-history me-1"></i>Historiek</a>
                     {% endif %}
-
-                    {% if current_user.role == 'BO' and current_user.can_manage_staff %}
-                    <a href="{{ url_for('setup') }}" class="btn btn-brand-orange nav-btn shadow-sm">
-                        <i class="bi bi-people-fill me-1"></i>Mijn Team
-                    </a>
+                    {% if current_user.role in ['BO', 'Admin'] %}
+                    <a href="{{ url_for('department_archive') }}" class="btn btn-brand-blue nav-btn shadow-sm">Afdelingsarchief</a>
                     {% endif %}
-                    
                     {% if current_user.role in ['Directie', 'Admin'] %}
-                    <a href="{{ url_for('all_orders') }}" class="btn btn-brand-blue nav-btn shadow-sm">
-                        <i class="bi bi-archive me-1"></i>Groot Archief
-                    </a>
+                    <a href="{{ url_for('all_orders') }}" class="btn btn-brand-blue nav-btn shadow-sm">Groot Archief</a>
                     {% endif %}
-                    
                     {% if current_user.role == 'Admin' %}
-                    <a href="{{ url_for('manage_departments') }}" class="btn btn-brand-cyan nav-btn shadow-sm">
-                        <i class="bi bi-building me-1"></i>Afdelingen
-                    </a>
-                    <a href="{{ url_for('setup') }}" class="btn btn-brand-orange nav-btn shadow-sm">
-                        <i class="bi bi-gear-fill me-1"></i>Setup
-                    </a>
+                    <a href="{{ url_for('manage_departments') }}" class="btn btn-brand-cyan nav-btn shadow-sm">Afdelingen</a>
+                    <a href="{{ url_for('setup') }}" class="btn btn-brand-orange nav-btn shadow-sm">Setup</a>
                     {% endif %}
                 </div>
-
                 <div class="d-flex align-items-center gap-3">
-                    <button onclick="toggleTheme()" class="theme-toggle-btn fs-5" title="Schakel donkere modus in/uit">
-                        <i id="themeIcon" class="bi bi-moon-stars-fill"></i>
-                    </button>
+                    <button onclick="toggleTheme()" class="theme-toggle-btn fs-5"><i id="themeIcon" class="bi bi-moon-stars-fill"></i></button>
                     <div class="text-end d-none d-md-block">
-                        <span class="text-muted small d-block">
-                            <i class="bi bi-person-circle me-1"></i><strong>{{ current_user.username }}</strong>
-                        </span>
-                        <span class="badge bg-light text-dark border extra-small">
-                            {{ current_user.dept.code if current_user.dept else 'GEEN' }}
-                        </span>
+                        <span class="text-muted small d-block"><strong>{{ current_user.username }}</strong></span>
+                        <span class="badge bg-light text-dark border extra-small">{{ current_user.dept.code if current_user.dept else 'GEEN' }}</span>
                     </div>
                     <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-sm fw-bold">Uitloggen</a>
                 </div>
@@ -116,29 +75,65 @@
 
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm border-0 border-start border-4 border-{{ category }}" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Sluiten"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
+            {% if messages %}{% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            {% endfor %}{% endif %}
         {% endwith %}
     </div>
 
     {% block content %}{% endblock %}
 
     <footer class="main-footer">
-        &copy; 2026 Stichting Marguerite Marie Delacroix &mdash; Ontwikkeld door AC | Versie 2.0.0 (Development)
+        &copy; 2026 Stichting Marguerite Marie Delacroix &mdash; Versie 2.3.0 (Smart Tables)
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        if (document.documentElement.getAttribute('data-bs-theme') === 'dark') {
-            document.getElementById('themeIcon')?.classList.replace('bi-moon-stars-fill', 'bi-sun-fill');
-            document.getElementById('themeIcon')?.classList.add('text-warning');
-        }
+        // --- UNIVERSEEL SORTEER EN FILTER SCRIPT ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const tables = document.querySelectorAll('table');
+            
+            tables.forEach(table => {
+                const tbody = table.querySelector('tbody');
+                if (!tbody) return;
+
+                // 1. VOEG ZOEKBALK TOE (Alleen als er rijen zijn)
+                if (tbody.rows.length > 0 && !table.classList.contains('no-filter')) {
+                    const filterInput = document.createElement('input');
+                    filterInput.type = 'text';
+                    filterInput.placeholder = 'Snel zoeken in deze lijst...';
+                    filterInput.className = 'form-control form-control-sm mb-3 shadow-sm';
+                    filterInput.style.maxWidth = '300px';
+                    
+                    filterInput.addEventListener('keyup', function() {
+                        const val = this.value.toLowerCase();
+                        Array.from(tbody.rows).forEach(row => {
+                            row.style.display = row.innerText.toLowerCase().includes(val) ? '' : 'none';
+                        });
+                    });
+                    table.parentNode.insertBefore(filterInput, table);
+                }
+
+                // 2. SORTEER LOGICA
+                table.querySelectorAll('th.sortable').forEach(header => {
+                    header.addEventListener('click', () => {
+                        const index = Array.from(header.parentNode.children).indexOf(header);
+                        const ascending = header.dataset.asc !== 'true';
+                        
+                        const rows = Array.from(tbody.rows);
+                        rows.sort((a, b) => {
+                            const aCol = a.children[index].innerText.trim().toLowerCase();
+                            const bCol = b.children[index].innerText.trim().toLowerCase();
+                            return ascending ? aCol.localeCompare(bCol) : bCol.localeCompare(aCol);
+                        });
+
+                        table.querySelectorAll('th').forEach(h => h.dataset.asc = 'false');
+                        header.dataset.asc = ascending;
+                        tbody.append(...rows);
+                    });
+                });
+            });
+        });
     </script>
 </body>
 </html>

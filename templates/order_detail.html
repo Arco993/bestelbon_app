@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container pb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">Bestelbon: {{ order.order_number }}</h2>
+        <h2 class="fw-bold"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Bestelbon: {{ order.order_number }}</h2>
         <span class="badge {% if order.status == 'Goedgekeurd' %}bg-success{% elif order.status == 'Afgewezen' %}bg-danger{% else %}bg-warning text-dark{% endif %} fs-6 px-3 py-2">
             Status: {{ order.status }}
         </span>
@@ -24,7 +24,7 @@
                         <div class="col-md-6 mb-3 text-start">
                             <h6 class="text-muted small fw-bold text-uppercase">Aanvrager</h6>
                             <p class="mb-0"><strong>{{ order.user.username }}</strong></p>
-                            <p class="text-muted small">{{ order.user.department }}</p>
+                            <p class="text-muted small">{{ order.user.dept.name if order.user.dept else 'Geen afdeling' }}</p>
                         </div>
                         <div class="col-md-6 mb-3 text-md-end">
                             <h6 class="text-muted small fw-bold text-uppercase">Leverancier</h6>
@@ -33,16 +33,27 @@
                             <p class="text-muted small">{{ order.supplier.zip_code }} {{ order.supplier.city }}</p>
                         </div>
                     </div>
-                    <hr>
-                    <h6 class="text-muted small fw-bold text-uppercase">Referentie / Project</h6>
-                    <p class="mb-0">{{ order.reference or 'Geen projectomschrijving opgegeven' }}</p>
                     
-                    {% if order.attachment_filename %}
                     <hr>
-                    <h6 class="text-muted small fw-bold text-uppercase"><i class="bi bi-paperclip me-1"></i>Bijlage / Offerte</h6>
-                    <a href="{{ url_for('static', filename='uploads/' + order.attachment_filename) }}" target="_blank" class="btn btn-outline-secondary btn-sm mt-1">
-                        <i class="bi bi-file-earmark-pdf text-danger me-1"></i> Bekijk Document
-                    </a>
+
+                    <h6 class="text-muted small fw-bold text-uppercase">Referentie / Project (Extern zichtbaar)</h6>
+                    <p class="mb-3">{{ order.reference or 'Geen projectomschrijving opgegeven' }}</p>
+
+                    <div class="p-3 bg-light-blue rounded border-start border-4 border-primary mb-3">
+                        <h6 class="text-primary small fw-bold text-uppercase mb-2"><i class="bi bi-chat-left-dots-fill me-1"></i>Interne Verklaring (Alleen voor goedkeurders)</h6>
+                        <p class="mb-0 italic">{{ order.internal_note or 'Geen interne verklaring opgegeven.' }}</p>
+                    </div>
+                    
+                    {% if order.attachments %}
+                    <hr>
+                    <h6 class="text-muted small fw-bold text-uppercase mb-2"><i class="bi bi-paperclip me-1"></i>Bijlagen / Offertes</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for attach in order.attachments %}
+                        <a href="{{ url_for('static', filename='uploads/' + attach.filename) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-file-earmark-pdf text-danger me-1"></i> Bijlage {{ loop.index }}
+                        </a>
+                        {% endfor %}
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -51,9 +62,14 @@
                 <div class="card-header bg-white fw-bold">Bestelde Artikelen</div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table mb-0">
+                        <table class="table mb-0 align-middle">
                             <thead class="table-light">
-                                <tr><th>Omschrijving</th><th class="text-center">Aantal</th><th class="text-end">Prijs (ex)</th><th class="text-end">Totaal (in)</th></tr>
+                                <tr>
+                                    <th>Omschrijving</th>
+                                    <th class="text-center">Aantal</th>
+                                    <th class="text-end">Prijs (ex)</th>
+                                    <th class="text-end">Totaal (in)</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 {% for line in order.lines %}
@@ -66,7 +82,10 @@
                                 {% endfor %}
                             </tbody>
                             <tfoot class="table-light">
-                                <tr><td colspan="3" class="text-end fw-bold">Eindtotaal:</td><td class="text-end fw-bold text-primary fs-5">€ {{ "%.2f"|format(order.total_amount) }}</td></tr>
+                                <tr>
+                                    <td colspan="3" class="text-end fw-bold">Eindtotaal (Incl. BTW):</td>
+                                    <td class="text-end fw-bold text-primary fs-5">€ {{ "%.2f"|format(order.total_amount) }}</td>
+                                </tr>
                             </tfoot>
                         </table>
                     </div>
@@ -86,7 +105,7 @@
                             <span class="small text-muted"><i class="bi bi-calendar3 me-1"></i> {{ order.bo_approval_date.strftime('%d-%m-%Y om %H:%M') }}</span><br>
                             <code class="text-dark extra-small mt-1 d-block">{{ order.bo_approval_code }}</code>
                         {% else %}
-                            <span class="text-muted small fst-italic">Nog niet behandeld</span>
+                            <span class="text-muted small fst-italic">Wacht op beoordeling BO</span>
                         {% endif %}
                     </div>
                     
@@ -98,7 +117,7 @@
                             <span class="small text-muted"><i class="bi bi-calendar3 me-1"></i> {{ order.dir_approval_date.strftime('%d-%m-%Y om %H:%M') }}</span><br>
                             <code class="text-dark extra-small mt-1 d-block">{{ order.dir_approval_code }}</code>
                         {% else %}
-                            <span class="text-muted small fst-italic">Nog niet behandeld</span>
+                            <span class="text-muted small fst-italic">Wacht op beoordeling Directie</span>
                         {% endif %}
                     </div>
                 </div>
@@ -115,10 +134,13 @@
                 </button>
             </div>
             {% endif %}
-            
-            <a href="{{ url_for('order_pdf', order_id=order.id) }}" target="_blank" class="btn btn-dark w-100 shadow-sm mt-2">
-                <i class="bi bi-file-earmark-pdf-fill me-2 text-danger"></i> Officiële PDF Genereren
-            </a>
+
+            <div class="d-grid">
+                <a href="{{ url_for('order_pdf', order_id=order.id) }}" target="_blank" class="btn btn-dark shadow-sm">
+                    <i class="bi bi-file-earmark-pdf-fill me-2 text-danger"></i> PDF Voor Leverancier
+                </a>
+                <small class="text-muted text-center mt-2 extra-small">Interne verklaring wordt niet getoond op PDF.</small>
+            </div>
         </div>
     </div>
 </div>
@@ -133,10 +155,11 @@
                 </div>
                 <div class="modal-body">
                     <label class="fw-bold small mb-2">Reden voor afwijzing (verplicht):</label>
-                    <textarea name="reason" class="form-control" rows="4" placeholder="Typ hier waarom deze bon niet door kan gaan..." required></textarea>
+                    <textarea name="reason" class="form-control" rows="4" placeholder="Typ hier de feedback voor de aanvrager..." required></textarea>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-custom btn-reject w-100 fw-bold">Definitief Afwijzen</button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="submit" class="btn btn-danger px-4 fw-bold">Definitief Afwijzen</button>
                 </div>
             </form>
         </div>

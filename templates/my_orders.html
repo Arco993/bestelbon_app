@@ -3,29 +3,55 @@
 <div class="container pb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold text-dark"><i class="bi bi-list-ul me-2 text-primary"></i>Mijn Bestelbonnen</h2>
-        <a href="{{ url_for('new_order') }}" class="btn btn-delacroix-orange shadow-sm">Nieuwe Bon</a>
+        <a href="{{ url_for('new_order') }}" class="btn btn-delacroix-orange shadow-sm">
+            <i class="bi bi-plus-lg me-1"></i>Nieuwe Bon
+        </a>
     </div>
+
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr><th>Datum</th><th>Referentie</th><th>Leverancier</th><th class="text-end">Bedrag</th><th class="text-center">Status</th><th class="text-end">Actie</th></tr>
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="sortable">Datum</th>
+                            <th class="sortable">Referentie</th>
+                            <th class="sortable">Leverancier</th>
+                            <th class="sortable text-end">Bedrag</th>
+                            <th class="sortable text-center">Status</th>
+                            <th class="text-end">Actie</th>
+                        </tr>
                     </thead>
                     <tbody>
                         {% for o in orders %}
                         <tr>
                             <td class="small text-muted">{{ o.created_at.strftime('%d-%m-%Y') }}</td>
-                            <td><div class="fw-bold">{{ o.order_number }}</div><div class="small text-muted">{{ o.reference[:30] if o.reference else '' }}{% if o.reference and o.reference|length > 30 %}...{% endif %}</div></td>
+                            <td>
+                                <div class="fw-bold">{{ o.order_number }}</div>
+                                <div class="small text-muted">
+                                    {{ o.reference[:30] if o.reference else '' }}{% if o.reference and o.reference|length > 30 %}...{% endif %}
+                                </div>
+                            </td>
                             <td>{{ o.supplier.name }}</td>
                             <td class="text-end fw-bold">€ {{ "%.2f"|format(o.total_amount) }}</td>
                             <td class="text-center">
-                                <span class="badge {% if o.status == 'Goedgekeurd' %}bg-success{% elif o.status == 'Afgewezen' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ o.status }}</span>
+                                <span class="badge {% if o.status == 'Goedgekeurd' %}bg-success{% elif o.status == 'Afgewezen' %}bg-danger{% else %}bg-warning text-dark{% endif %} px-3">
+                                    {{ o.status }}
+                                </span>
                             </td>
-                            <td class="text-end"><a href="{{ url_for('order_detail', order_id=o.id) }}" class="btn btn-sm btn-custom btn-edit px-3">Bekijken</a></td>
+                            <td class="text-end">
+                                <a href="{{ url_for('order_detail', order_id=o.id) }}" class="btn btn-sm btn-custom btn-brand-blue px-3">
+                                    Bekijken
+                                </a>
+                            </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="6" class="text-center py-5 text-muted">Je hebt nog geen bonnen.</td></tr>
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox display-4 d-block mb-3 text-secondary"></i>
+                                Je hebt nog geen bestelbonnen aangemaakt.
+                            </td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>

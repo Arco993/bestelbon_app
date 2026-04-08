@@ -6,7 +6,7 @@
             {% if current_user.role == 'Admin' %}Gebruikersbeheer{% else %}Mijn Team Beheren{% endif %}
         </h2>
         {% if current_user.role == 'Admin' %}
-        <a href="{{ url_for('manage_departments') }}" class="btn-custom btn-edit" fw-bold shadow-sm">
+        <a href="{{ url_for('manage_departments') }}" class="btn btn-custom btn-edit fw-bold shadow-sm">
             <i class="bi bi-building me-1"></i> Afdelingen Beheren
         </a>
         {% endif %}
@@ -14,26 +14,25 @@
     
     <div class="row">
         <div class="col-md-3">
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-primary text-white fw-bold">Nieuw Profiel</div>
                 <div class="card-body">
                     <form action="{{ url_for('add_user') }}" method="POST">
                         <input type="text" name="username" class="form-control mb-2" placeholder="Gebruikersnaam" required>
                         <input type="email" name="email" class="form-control mb-2" placeholder="E-mail">
-                        <input type="text" name="password" class="form-control mb-3" placeholder="Wachtwoord" required>
+                        <input type="password" name="password" class="form-control mb-3" placeholder="Wachtwoord" required>
                         
                         <div class="mb-3">
-                            <label class="small fw-bold text-muted mb-1">Afdeling</label>
-                            <select name="department_id" class="form-select form-select-sm" required {% if current_user.role != 'Admin' %}disabled{% endif %}>
+                            <label class="small fw-bold text-muted mb-1">Afdeling (Optioneel)</label>
+                            <select name="department_id" class="form-select form-select-sm" {% if current_user.role != 'Admin' %}disabled{% endif %}>
+                                <option value="">Geen afdeling (Directie/Admin)</option>
                                 {% for dept in departments %}
                                     <option value="{{ dept.id }}" {% if current_user.department_id == dept.id %}selected{% endif %}>
                                         {{ dept.name }} ({{ dept.code }})
                                     </option>
                                 {% endfor %}
                             </select>
-                            {% if current_user.role != 'Admin' %}
-                                <input type="hidden" name="department_id" value="{{ current_user.department_id }}">
-                            {% endif %}
+                            {% if current_user.role != 'Admin' %}<input type="hidden" name="department_id" value="{{ current_user.department_id }}">{% endif %}
                         </div>
 
                         <div class="mb-3">
@@ -41,10 +40,8 @@
                             <div class="btn-group w-100 shadow-sm" role="group">
                                 <input type="radio" class="btn-check" name="role" id="role_personeel" value="Personeel" checked>
                                 <label class="btn btn-outline-secondary btn-sm" for="role_personeel">Pers.</label>
-
                                 <input type="radio" class="btn-check" name="role" id="role_bo" value="BO">
                                 <label class="btn btn-outline-secondary btn-sm" for="role_bo">BO</label>
-                                
                                 {% if current_user.role == 'Admin' %}
                                 <input type="radio" class="btn-check" name="role" id="role_directie" value="Directie">
                                 <label class="btn btn-outline-secondary btn-sm" for="role_directie">Dir.</label>
@@ -56,39 +53,37 @@
                         
                         <div class="form-check form-switch mb-2">
                             <input class="form-check-input" type="checkbox" name="allow_auto_approve" id="autoCheckNew">
-                            <label class="form-check-label small fw-bold text-success" for="autoCheckNew">Auto-approve toestaan</label>
+                            <label class="form-check-label small fw-bold text-success" for="autoCheckNew">Auto-approve</label>
                         </div>
 
-                        {# STRIKTE BEVEILIGING: Alleen Admin ziet dit vinkje #}
                         {% if current_user.role == 'Admin' %}
                         <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" name="can_manage_staff" id="staffCheckNew">
-                            <label class="form-check-label small fw-bold text-primary" for="staffCheckNew">Mag personeel beheren (BO)</label>
+                            <label class="form-check-label small fw-bold text-primary" for="staffCheckNew">Beheer (BO)</label>
                         </div>
-                        {% else %}
-                        <input type="hidden" name="can_manage_staff" value="off">
                         {% endif %}
                         
                         <div class="mb-3">
-                            <label class="small fw-bold text-success">Limiet Auto-Goedkeuring (€)</label>
+                            <label class="small fw-bold text-success">Limiet Auto (€)</label>
                             <input type="number" name="auto_approve_limit" class="form-control form-control-sm" value="0">
                         </div>
 
                         <div class="row g-2 mb-3">
                             <div class="col-6">
-                                <label class="small fw-bold text-danger">Bijlage vanaf (€)</label>
+                                <label class="small fw-bold text-danger text-truncate">Bijlage vanaf (€)</label>
                                 <input type="number" name="min_attachment_limit" class="form-control form-control-sm" value="500">
                             </div>
                             <div class="col-6">
-                                <label class="small fw-bold text-danger">Directie vanaf (€)</label>
+                                <label class="small fw-bold text-danger">Dir. vanaf (€)</label>
                                 <input type="number" name="max_bo_limit" class="form-control form-control-sm" value="1000">
                             </div>
                         </div>
                         
                         <label class="small fw-bold text-muted">Vaste Goedkeurder</label>
                         <select name="approver_id" class="form-select form-select-sm mb-4">
+                            <option value="">Geen (Directe goedkeuring)</option>
                             {% for a in approvers %}
-                                <option value="{{ a.id }}" {% if current_user.id == a.id %}selected{% endif %}>{{ a.username }} ({{ a.role }})</option>
+                                <option value="{{ a.id }}" {% if current_user.id == a.id %}selected{% endif %}>{{ a.username }}</option>
                             {% endfor %}
                         </select>
                         <button type="submit" class="btn btn-delacroix-orange w-100 fw-bold shadow-sm">Gebruiker Opslaan</button>
@@ -104,10 +99,10 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>Naam & Afdeling</th>
-                                    <th>Rol & Rechten</th>
-                                    <th>Goedkeuringsregels</th>
-                                    <th>Instellingen</th>
+                                    <th class="sortable">Naam & Afdeling</th>
+                                    <th class="sortable">Rol</th>
+                                    <th class="sortable">Regels</th>
+                                    <th>E-mail</th>
                                     <th class="text-center">Actie</th>
                                 </tr>
                             </thead>
@@ -116,7 +111,7 @@
                                 <tr>
                                     <td>
                                         <strong>{{ u.username }}</strong><br>
-                                        <span class="badge bg-light text-dark border">{{ u.dept.name if u.dept else 'Geen Afdeling' }}</span>
+                                        <span class="badge bg-light text-dark border">{{ u.dept.name if u.dept else 'Geen' }}</span>
                                     </td>
                                     <td>
                                         <span class="badge {% if u.role == 'Admin' %}bg-danger{% elif u.role == 'Directie' %}bg-primary{% elif u.role == 'BO' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
@@ -125,19 +120,12 @@
                                         {% if u.can_manage_staff %}<br><small class="text-primary fw-bold">Beheerder</small>{% endif %}
                                     </td>
                                     <td>
-                                        <small class="text-muted d-block">
-                                            <i class="bi bi-magic {% if u.allow_auto_approve %}text-success{% else %}text-muted{% endif %}"></i> 
-                                            Auto: {% if u.allow_auto_approve %}€ {{ u.auto_approve_limit }}{% else %}Uit{% endif %}
-                                        </small>
-                                        <small class="text-muted d-block"><i class="bi bi-building"></i> Directie > € {{ u.max_bo_limit }}</small>
+                                        <small class="text-muted d-block">Auto: {% if u.allow_auto_approve %}€ {{ u.auto_approve_limit }}{% else %}Uit{% endif %}</small>
+                                        <small class="text-muted d-block text-danger">Directie > € {{ u.max_bo_limit }}</small>
                                     </td>
-                                    <td>
-                                        <small class="text-muted d-block"><i class="bi bi-envelope"></i> {{ u.email_notification_freq }}</small>
-                                    </td>
+                                    <td class="small text-muted">{{ u.email or '-' }}</td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-custom btn-edit fw-bold" data-bs-toggle="modal" data-bs-target="#editModal{{ u.id }}">
-                                            Aanpassen
-                                        </button>
+                                        <button class="btn btn-sm btn-custom btn-edit fw-bold px-3" data-bs-toggle="modal" data-bs-target="#editModal{{ u.id }}">Aanpassen</button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -167,14 +155,13 @@
 
                     <div class="mb-3">
                         <label class="small fw-bold text-muted">Afdeling</label>
-                        <select name="department_id" class="form-select" required {% if current_user.role != 'Admin' %}disabled{% endif %}>
+                        <select name="department_id" class="form-select" {% if current_user.role != 'Admin' %}disabled{% endif %}>
+                            <option value="">Geen afdeling</option>
                             {% for dept in departments %}
                                 <option value="{{ dept.id }}" {% if u.department_id == dept.id %}selected{% endif %}>{{ dept.name }}</option>
                             {% endfor %}
                         </select>
-                        {% if current_user.role != 'Admin' %}
-                             <input type="hidden" name="department_id" value="{{ u.department_id }}">
-                        {% endif %}
+                        {% if current_user.role != 'Admin' %}<input type="hidden" name="department_id" value="{{ u.department_id }}">{% endif %}
                     </div>
 
                     <div class="mb-3">
@@ -184,6 +171,10 @@
                             <label class="btn btn-outline-secondary btn-sm" for="e_role_pers_{{ u.id }}">Pers.</label>
                             <input type="radio" class="btn-check" name="role" id="e_role_bo_{{ u.id }}" value="BO" {% if u.role == 'BO' %}checked{% endif %}>
                             <label class="btn btn-outline-secondary btn-sm" for="e_role_bo_{{ u.id }}">BO</label>
+                            {% if current_user.role == 'Admin' %}
+                            <input type="radio" class="btn-check" name="role" id="e_role_dir_{{ u.id }}" value="Directie" {% if u.role == 'Directie' %}checked{% endif %}>
+                            <label class="btn btn-outline-secondary btn-sm" for="e_role_dir_{{ u.id }}">Dir.</label>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -194,7 +185,6 @@
                                 <label class="form-check-label small fw-bold text-success" for="e_auto_{{ u.id }}">Auto-approve</label>
                             </div>
                         </div>
-                        
                         {% if current_user.role == 'Admin' %}
                         <div class="col-6">
                             <div class="form-check form-switch">
@@ -213,6 +203,7 @@
                     <div class="mb-3">
                         <label class="small fw-bold text-muted">Vaste Goedkeurder</label>
                         <select name="approver_id" class="form-select">
+                            <option value="">Geen</option>
                             {% for a in approvers if a.id != u.id %}
                                 <option value="{{ a.id }}" {% if u.approver_id == a.id %}selected{% endif %}>{{ a.username }}</option>
                             {% endfor %}
@@ -227,8 +218,4 @@
     </div>
 </div>
 {% endfor %}
-
-<footer style="text-align: center; padding: 20px; margin-top: 40px; font-size: 0.85em; color: #666; border-top: 1px solid #ddd;">
-    &copy; 2026 Stichting Marguerite Marie Delacroix &mdash; Ontwikkeld door A. Coel
-</footer>
 {% endblock %}
