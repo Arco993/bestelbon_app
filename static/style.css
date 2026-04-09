@@ -1,0 +1,121 @@
+/* --- CENTRALE HUISSTIJL DELACROIX --- */
+
+/* 1. Basis & Sticky Footer Logica */
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    background-color: #f4f7f9;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    /* Ruimte bovenin voor de vaste balken (80px nav + 6px bar + 20px marge) */
+    padding-top: 106px; 
+}
+
+/* 2. Navigatie (Vastgepind & Strak) */
+.navbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0;
+    right: 0;
+    height: 80px;
+    z-index: 2000 !important;
+    background-color: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+    display: flex;
+    align-items: center;
+    margin: 0 !important;
+}
+
+.navbar-brand img {
+    max-height: 60px; /* Houdt het logo op een bescheiden formaat */
+    width: auto;
+    object-fit: contain;
+}
+
+/* 3. Gekleurde Brand-Bar (Vastgepind zonder schaduw) */
+.brand-bar {
+    height: 6px;
+    width: 100%;
+    position: fixed;
+    top: 80px;
+    left: 0;
+    z-index: 2001;
+    background: linear-gradient(to right, 
+        #009fe3 0%, #009fe3 20%, 
+        #f29200 20%, #f29200 40%, 
+        #8dc63f 40%, #8dc63f 60%, 
+        #e4007d 60%, #e4007d 80%, 
+        #0054a4 80%, #0054a4 100%) !important;
+    box-shadow: none !important;
+}
+
+/* 4. Content Area (Vult de ruimte op voor sticky footer) */
+main {
+    flex: 1 0 auto;
+}
+
+.container {
+    margin-top: 20px;
+}
+
+/* 5. Knoppen Huisstijl (Harde kleuren) */
+.btn-brand-cyan   { background-color: #009fe3 !important; color: white !important; border: none; }
+.btn-brand-green  { background-color: #8dc63f !important; color: white !important; border: none; }
+.btn-brand-pink   { background-color: #e4007d !important; color: white !important; border: none; }
+.btn-brand-blue   { background-color: #0054a4 !important; color: white !important; border: none; }
+.btn-brand-orange { background-color: #f29200 !important; color: white !important; border: none; }
+
+.btn-primary {
+    background-color: #003366 !important;
+    border-color: #003366 !important;
+    color: white !important;
+    font-weight: 600;
+}
+
+.btn-success, .btn-info {
+    background-color: #f29200 !important;
+    border-color: #f29200 !important;
+    color: white !important;
+    font-weight: bold;
+}
+
+/* 6. SUBTIELE FOOTER (Vlak en rustig) */
+.footer {
+    flex-shrink: 0;
+    background-color: #ffffff;
+    border-top: 1px solid #e0e0e0; /* Subtiele grijze lijn */
+    padding: 12px 0;
+    width: 100%;
+    margin-top: auto;
+}
+
+.footer-text { 
+    color: #003366; 
+    font-weight: 500; 
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.85rem;
+}
+
+.footer-subtext { 
+    color: #999; 
+    font-size: 0.75rem; 
+}
+
+/* Logo in de footer subtiel grijs maken */
+.footer-brand img {
+    filter: grayscale(100%);
+    opacity: 0.6;
+    transition: all 0.3s;
+}
+
+.footer-brand:hover img {
+    filter: grayscale(0%);
+    opacity: 1;
+}
