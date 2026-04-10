@@ -106,13 +106,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-@app.route('/toggle_theme', methods=['POST'])
-@login_required
-def toggle_theme():
-    current_user.dark_mode = request.get_json().get('dark_mode', False)
-    db.session.commit()
-    return jsonify({'success': True})
-
 # --- BESTELBON ROUTES ---
 @app.route('/order/new', methods=['GET', 'POST'])
 @login_required
