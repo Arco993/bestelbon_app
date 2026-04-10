@@ -101,20 +101,46 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr class="item-row">
-                                        <td><input type="text" name="product_code[]" class="form-control form-control-sm"></td>
-                                        <td><input type="text" name="desc[]" class="form-control form-control-sm" required></td>
-                                        <td><input type="text" name="internal_note[]" class="form-control form-control-sm" placeholder="Vrij veld"></td>
-                                        <td><input type="number" name="qty[]" class="form-control form-control-sm qty" value="1" min="1" step="0.01" onchange="calcTotal()" required></td>
-                                        <td><input type="number" name="price[]" class="form-control form-control-sm price" value="0.00" step="0.01" onchange="calcTotal()" required></td>
-                                        <td>
-                                            <select name="tax[]" class="form-select form-select-sm tax" onchange="calcTotal()">
-                                                <option value="21.0">21%</option><option value="12.0">12%</option>
-                                                <option value="6.0">6%</option><option value="0.0">0%</option>
-                                            </select>
-                                        </td>
-                                        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)"><i class="bi bi-trash"></i></button></td>
-                                    </tr>
+                                    {% set descs = form_data.getlist('desc[]') if form_data else [] %}
+                                    
+                                    {% if descs %}
+                                        {% for i in range(descs|length) %}
+                                            <tr class="item-row">
+                                                <td><input type="text" name="product_code[]" class="form-control form-control-sm" value="{{ form_data.getlist('product_code[]')[i] }}"></td>
+                                                <td><input type="text" name="desc[]" class="form-control form-control-sm" value="{{ descs[i] }}" required></td>
+                                                <td><input type="text" name="internal_note[]" class="form-control form-control-sm" placeholder="Vrij veld" value="{{ form_data.getlist('internal_note[]')[i] }}"></td>
+                                                <td><input type="number" name="qty[]" class="form-control form-control-sm qty" value="{{ form_data.getlist('qty[]')[i] }}" min="1" step="0.01" onchange="calcTotal()" required></td>
+                                                <td><input type="number" name="price[]" class="form-control form-control-sm price" value="{{ form_data.getlist('price[]')[i] }}" step="0.01" onchange="calcTotal()" required></td>
+                                                <td>
+                                                    {% set current_tax = form_data.getlist('tax[]')[i] %}
+                                                    <select name="tax[]" class="form-select form-select-sm tax" onchange="calcTotal()">
+                                                        <option value="21.0" {% if current_tax == '21.0' %}selected{% endif %}>21%</option>
+                                                        <option value="12.0" {% if current_tax == '12.0' %}selected{% endif %}>12%</option>
+                                                        <option value="6.0" {% if current_tax == '6.0' %}selected{% endif %}>6%</option>
+                                                        <option value="0.0" {% if current_tax == '0.0' %}selected{% endif %}>0%</option>
+                                                    </select>
+                                                </td>
+                                                <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)"><i class="bi bi-trash"></i></button></td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr class="item-row">
+                                            <td><input type="text" name="product_code[]" class="form-control form-control-sm"></td>
+                                            <td><input type="text" name="desc[]" class="form-control form-control-sm" required></td>
+                                            <td><input type="text" name="internal_note[]" class="form-control form-control-sm" placeholder="Vrij veld"></td>
+                                            <td><input type="number" name="qty[]" class="form-control form-control-sm qty" value="1" min="1" step="0.01" onchange="calcTotal()" required></td>
+                                            <td><input type="number" name="price[]" class="form-control form-control-sm price" value="0.00" step="0.01" onchange="calcTotal()" required></td>
+                                            <td>
+                                                <select name="tax[]" class="form-select form-select-sm tax" onchange="calcTotal()">
+                                                    <option value="21.0">21%</option>
+                                                    <option value="12.0">12%</option>
+                                                    <option value="6.0">6%</option>
+                                                    <option value="0.0">0%</option>
+                                                </select>
+                                            </td>
+                                            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)"><i class="bi bi-trash"></i></button></td>
+                                        </tr>
+                                    {% endif %}
                                 </tbody>
                                 <tfoot class="table-light">
                                     <tr>
@@ -148,7 +174,6 @@
         rows.forEach(row => {
             const qty = parseFloat(row.querySelector('.qty').value) || 0;
             const price = parseFloat(row.querySelector('.price').value) || 0;
-            // Omdat de prijs al inclusief BTW is, is de som heel simpel:
             total += (qty * price);
         });
         document.getElementById('grandTotal').innerText = '€ ' + total.toFixed(2);
@@ -221,5 +246,8 @@
             searchResults.style.display = 'none';
         }
     });
+
+    // Bereken het totaal direct bij het inladen (nodig na form validatie fout)
+    document.addEventListener('DOMContentLoaded', calcTotal);
 </script>
 {% endblock %}
