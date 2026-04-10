@@ -269,9 +269,6 @@ def escalate_order(order_id):
         db.session.commit()
         flash(f'Bon {order.order_number} is succesvol gepusht naar de Directie.', 'success')
         
-        # Optioneel: Mail sturen naar directie dat er een bon is gepusht
-        # send_status_mail('directie@delacroix.be', 'Bon gepusht', f'Bon {order.order_number} is door {current_user.username} gepusht wegens afwezigheid BO.')
-        
     return redirect(request.referrer or url_for('my_orders'))
 
 @app.route('/order/reject/<int:order_id>', methods=['POST'])
