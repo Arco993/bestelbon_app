@@ -12,6 +12,7 @@ class User(db.Model, UserMixin):
     role = db.Column(db.String(20), nullable=False) 
     department = db.Column(db.String(50))
     department_code = db.Column(db.String(5))
+    is_active = db.Column(db.Boolean, default=True)
     
     min_attachment_limit = db.Column(db.Float, default=500.0) 
     max_bo_limit = db.Column(db.Float, default=1000.0)

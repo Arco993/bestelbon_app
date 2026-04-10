@@ -2,87 +2,53 @@
 {% block content %}
 <div class="container-fluid pb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold text-dark"><i class="bi bi-gear-fill me-2 text-primary"></i>Gebruikersbeheer</h2>
+        <h2 class="fw-bold text-dark"><i class="bi bi-gear-fill me-2 text-primary"></i>Gebruikersbeheer & Systeeminstellingen</h2>
     </div>
     
     <div class="row">
         <div class="col-md-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-primary text-white fw-bold">Nieuw Profiel</div>
+            <div class="card shadow-sm border-0 position-sticky" style="top: 20px;">
+                <div class="card-header bg-primary text-white fw-bold">Nieuw Profiel Aanmaken</div>
                 <div class="card-body">
                     <form action="{{ url_for('add_user') }}" method="POST">
                         <input type="text" name="username" class="form-control mb-2" placeholder="Gebruikersnaam" required>
                         <input type="email" name="email" class="form-control mb-2" placeholder="E-mail">
-                        <input type="text" name="password" class="form-control mb-3" placeholder="Wachtwoord" required>
+                        <input type="password" name="password" class="form-control mb-3" placeholder="Wachtwoord" required>
                         
                         <div class="row g-2 mb-3">
-                            <div class="col-8">
-                                <input type="text" name="department" class="form-control form-control-sm" placeholder="Afdeling (voluit)">
-                            </div>
                             <div class="col-4">
-                                <input type="text" name="department_code" class="form-control form-control-sm" placeholder="Code (TD)" required>
+                                <label class="small fw-bold">Code (TD)</label>
+                                <input type="text" name="department_code" class="form-control form-control-sm" placeholder="ICT" required>
                             </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="small fw-bold text-muted mb-1 d-block">Rol Toewijzen</label>
-                            <div class="btn-group w-100 shadow-sm" role="group">
-                                <input type="radio" class="btn-check" name="role" id="role_personeel" value="Personeel" checked>
-                                <label class="btn btn-outline-secondary btn-sm" for="role_personeel">Pers.</label>
-
-                                <input type="radio" class="btn-check" name="role" id="role_bo" value="BO">
-                                <label class="btn btn-outline-secondary btn-sm" for="role_bo">BO</label>
-
-                                <input type="radio" class="btn-check" name="role" id="role_directie" value="Directie">
-                                <label class="btn btn-outline-secondary btn-sm" for="role_directie">Dir.</label>
-
-                                <input type="radio" class="btn-check" name="role" id="role_admin" value="Admin">
-                                <label class="btn btn-outline-danger btn-sm" for="role_admin">Admin</label>
-                            </div>
-                        </div>
-                        
-                        <hr>
-                        
-                        <div class="mb-3">
-                            <label class="small fw-bold text-primary"><i class="bi bi-envelope-at me-1"></i>E-mail Notificaties</label>
-                            <select name="email_notification_freq" class="form-select form-select-sm mb-2">
-                                <option value="Direct">Direct bij nieuwe bon</option>
-                                <option value="Dagelijks">Dagelijkse samenvatting</option>
-                                <option value="Nooit">Geen e-mails</option>
-                            </select>
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text small">Tijdstip samenvatting</span>
-                                <input type="time" name="digest_time" class="form-control" value="08:00">
+                            <div class="col-8">
+                                <label class="small fw-bold">Rol</label>
+                                <select name="role" class="form-select form-select-sm">
+                                    <option value="Personeel">Personeel</option>
+                                    <option value="BO">Budgethouder (BO)</option>
+                                    <option value="Directie">Directie</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
                             </div>
                         </div>
 
                         <hr>
-
-                        <div class="row g-2 mb-2">
-                            <div class="col-12">
-                                <label class="small fw-bold text-success"><i class="bi bi-magic me-1"></i>Auto-Goedkeuring t/m (€)</label>
-                                <input type="number" name="auto_approve_limit" class="form-control form-control-sm" value="50">
-                            </div>
-                        </div>
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <label class="small fw-bold text-danger">Bijlage vanaf (€)</label>
-                                <input type="number" name="min_attachment_limit" class="form-control form-control-sm" value="500">
-                            </div>
-                            <div class="col-6">
-                                <label class="small fw-bold text-danger">Directie vanaf (€)</label>
-                                <input type="number" name="max_bo_limit" class="form-control form-control-sm" value="1000">
-                            </div>
-                        </div>
+                        <label class="small fw-bold text-success"><i class="bi bi-magic me-1"></i>Auto-Approve t/m (€)</label>
+                        <input type="number" name="auto_approve_limit" class="form-control form-control-sm mb-2" value="50">
                         
+                        <label class="small fw-bold text-danger">Bijlage vanaf (€)</label>
+                        <input type="number" name="min_attachment_limit" class="form-control form-control-sm mb-2" value="500">
+                        
+                        <label class="small fw-bold text-danger">Directie vanaf (€)</label>
+                        <input type="number" name="max_bo_limit" class="form-control form-control-sm mb-3" value="1000">
+
                         <label class="small fw-bold text-muted">Vaste Goedkeurder</label>
                         <select name="approver_id" class="form-select form-select-sm mb-4">
-                            <option value="" class="fw-bold text-success">Geen (Zelfstandig Bestellen)</option>
+                            <option value="">Geen (Zelfstandig)</option>
                             {% for a in approvers %}
                                 <option value="{{ a.id }}">{{ a.username }} ({{ a.role }})</option>
                             {% endfor %}
                         </select>
-                        <button type="submit" class="btn btn-delacroix-orange w-100 fw-bold shadow-sm">Gebruiker Opslaan</button>
+                        <button type="submit" class="btn btn-brand-orange w-100 fw-bold shadow-sm text-white">Gebruiker Opslaan</button>
                     </form>
                 </div>
             </div>
@@ -95,47 +61,49 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>Naam & Afdeling</th>
+                                    <th>Naam & E-mail</th>
                                     <th>Code</th>
                                     <th>Rol</th>
                                     <th>Goedkeuringsregels</th>
-                                    <th>E-mail</th>
-                                    <th class="text-center">Actie</th>
+                                    <th class="text-center">Acties</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for u in users %}
-                                <tr>
+                                <tr class="{% if not u.is_active %}table-light text-muted{% endif %}">
                                     <td>
-                                        <strong>{{ u.username }}</strong><br>
-                                        <small class="text-muted">{{ u.department or 'Geen afdeling' }}</small>
+                                        <strong class="{% if not u.is_active %}text-decoration-line-through{% endif %}">{{ u.username }}</strong>
+                                        {% if not u.is_active %}<span class="badge bg-secondary ms-1">Inactief</span>{% endif %}<br>
+                                        <small>{{ u.email or 'Geen e-mail' }}</small>
                                     </td>
                                     <td><span class="badge bg-secondary">{{ u.department_code }}</span></td>
                                     <td>
-                                        <span class="badge {% if u.role == 'Admin' %}bg-danger{% elif u.role == 'Directie' %}bg-primary{% elif u.role == 'BO' %}bg-warning text-dark{% else %}bg-light text-dark border{% endif %}">
+                                        <span class="badge {% if not u.is_active %}bg-dark-subtle{% elif u.role == 'Admin' %}bg-danger{% elif u.role == 'Directie' %}bg-primary{% elif u.role == 'BO' %}bg-warning text-dark{% else %}bg-light text-dark border{% endif %}">
                                             {{ u.role }}
                                         </span>
                                     </td>
                                     <td>
-                                        <small class="text-muted d-block"><i class="bi bi-magic text-success"></i> Auto t/m € {{ u.auto_approve_limit }}</small>
-                                        <small class="text-muted d-block"><i class="bi bi-paperclip"></i> Bijlage > € {{ u.min_attachment_limit }}</small>
-                                        <small class="text-muted d-block"><i class="bi bi-building"></i> Directie > € {{ u.max_bo_limit }}</small>
-                                    </td>
-                                    <td>
-                                        <small class="fw-bold d-block">
-                                            {% if u.email_notification_freq == 'Direct' %}
-                                                <i class="bi bi-lightning-fill text-warning"></i> Direct
-                                            {% elif u.email_notification_freq == 'Dagelijks' %}
-                                                <i class="bi bi-clock-history text-primary"></i> {{ u.digest_time }}
-                                            {% else %}
-                                                <i class="bi bi-bell-slash text-muted"></i> Nooit
-                                            {% endif %}
-                                        </small>
+                                        <small class="d-block"><i class="bi bi-magic text-success"></i> Auto € {{ u.auto_approve_limit }}</small>
+                                        <small class="d-block"><i class="bi bi-paperclip"></i> Bijlage > € {{ u.min_attachment_limit }}</small>
+                                        <small class="d-block"><i class="bi bi-building"></i> Directie > € {{ u.max_bo_limit }}</small>
                                     </td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-primary fw-bold" data-bs-toggle="modal" data-bs-target="#editModal{{ u.id }}">
-                                            Aanpassen
-                                        </button>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary fw-bold" data-bs-toggle="modal" data-bs-target="#editModal{{ u.id }}">
+                                                Aanpassen
+                                            </button>
+                                            <form action="{{ url_for('toggle_user_status', user_id=u.id) }}" method="POST" class="d-inline">
+                                                {% if u.is_active %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger ms-1" title="Deactiveren" onclick="return confirm('Account deactiveren? Deze persoon kan dan niet meer inloggen.');">
+                                                        <i class="bi bi-person-x-fill"></i>
+                                                    </button>
+                                                {% else %}
+                                                    <button type="submit" class="btn btn-sm btn-success ms-1" title="Activeren">
+                                                        <i class="bi bi-person-check-fill"></i>
+                                                    </button>
+                                                {% endif %}
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -150,90 +118,70 @@
 
 {% for u in users %}
 <div class="modal fade" id="editModal{{ u.id }}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content border-0 shadow-lg">
             <form action="{{ url_for('edit_user', user_id=u.id) }}" method="POST">
                 <div class="modal-header bg-light">
-                    <h5 class="modal-title fw-bold text-primary">Wijzig: {{ u.username }}</h5>
+                    <h5 class="modal-title fw-bold text-primary">Gebruiker Wijzigen: {{ u.username }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body text-start">
-                    <div class="row mb-2">
-                        <div class="col-8">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
                             <label class="small fw-bold text-muted">Naam</label>
                             <input type="text" name="username" class="form-control" value="{{ u.username }}" required>
                         </div>
-                        <div class="col-4">
-                            <label class="small fw-bold text-muted">Code</label>
+                        <div class="col-md-6">
+                            <label class="small fw-bold text-muted">E-mail</label>
+                            <input type="email" name="email" class="form-control" value="{{ u.email or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small fw-bold text-muted">Dienst Code</label>
                             <input type="text" name="department_code" class="form-control" value="{{ u.department_code }}" required>
                         </div>
-                    </div>
-                    
-                    <label class="small fw-bold text-muted">E-mail</label>
-                    <input type="email" name="email" class="form-control mb-2" value="{{ u.email or '' }}">
-                    
-                    <label class="small fw-bold text-muted">Afdeling (voluit)</label>
-                    <input type="text" name="department" class="form-control mb-3" value="{{ u.department or '' }}">
-                    
-                    <label class="small fw-bold text-muted mb-1 d-block">Rol Toewijzen</label>
-                    <div class="btn-group w-100 shadow-sm mb-3" role="group">
-                        <input type="radio" class="btn-check" name="role" id="edit_role_personeel_{{ u.id }}" value="Personeel" {% if u.role == 'Personeel' %}checked{% endif %}>
-                        <label class="btn btn-outline-secondary btn-sm" for="edit_role_personeel_{{ u.id }}">Pers.</label>
-
-                        <input type="radio" class="btn-check" name="role" id="edit_role_bo_{{ u.id }}" value="BO" {% if u.role == 'BO' %}checked{% endif %}>
-                        <label class="btn btn-outline-secondary btn-sm" for="edit_role_bo_{{ u.id }}">BO</label>
-
-                        <input type="radio" class="btn-check" name="role" id="edit_role_directie_{{ u.id }}" value="Directie" {% if u.role == 'Directie' %}checked{% endif %}>
-                        <label class="btn btn-outline-secondary btn-sm" for="edit_role_directie_{{ u.id }}">Dir.</label>
-
-                        <input type="radio" class="btn-check" name="role" id="edit_role_admin_{{ u.id }}" value="Admin" {% if u.role == 'Admin' %}checked{% endif %}>
-                        <label class="btn btn-outline-danger btn-sm" for="edit_role_admin_{{ u.id }}">Admin</label>
-                    </div>
-
-                    <hr>
-                    <label class="small fw-bold text-primary mb-2"><i class="bi bi-envelope-at me-1"></i>E-mail Notificatie Instellingen</label>
-                    <div class="row g-2 mb-3">
-                        <div class="col-7">
-                            <select name="email_notification_freq" class="form-select">
-                                <option value="Direct" {% if u.email_notification_freq == 'Direct' %}selected{% endif %}>Direct</option>
-                                <option value="Dagelijks" {% if u.email_notification_freq == 'Dagelijks' %}selected{% endif %}>Dagelijkse samenvatting</option>
-                                <option value="Nooit" {% if u.email_notification_freq == 'Nooit' %}selected{% endif %}>Geen e-mails</option>
+                        <div class="col-md-8">
+                            <label class="small fw-bold text-muted">Rol</label>
+                            <select name="role" class="form-select">
+                                <option value="Personeel" {% if u.role == 'Personeel' %}selected{% endif %}>Personeel</option>
+                                <option value="BO" {% if u.role == 'BO' %}selected{% endif %}>Budgethouder (BO)</option>
+                                <option value="Directie" {% if u.role == 'Directie' %}selected{% endif %}>Directie</option>
+                                <option value="Admin" {% if u.role == 'Admin' %}selected{% endif %}>Admin</option>
                             </select>
                         </div>
-                        <div class="col-5">
-                            <input type="time" name="digest_time" class="form-control" value="{{ u.digest_time or '08:00' }}">
+                        <div class="col-md-12">
+                            <label class="small fw-bold text-muted">Nieuw Wachtwoord (leeg laten om te behouden)</label>
+                            <input type="password" name="password" class="form-control" placeholder="******">
                         </div>
-                    </div>
-                    <hr>
-
-                    <label class="small fw-bold text-muted">Nieuw Wachtwoord (optioneel)</label>
-                    <input type="password" name="password" class="form-control mb-3" placeholder="Leeg laten om te behouden...">
-                    
-                    <div class="row mb-3">
-                        <div class="col-12 mb-2">
-                            <label class="small fw-bold text-success">Auto-Goedkeuring t/m (€)</label>
+                        
+                        <hr>
+                        <h6 class="fw-bold text-primary">Financiële Limieten</h6>
+                        <div class="col-md-4">
+                            <label class="small fw-bold text-success">Auto-Goedkeuring (€)</label>
                             <input type="number" name="auto_approve_limit" class="form-control" value="{{ u.auto_approve_limit }}">
                         </div>
-                        <div class="col-6">
+                        <div class="col-md-4">
                             <label class="small fw-bold text-danger">Bijlage vanaf (€)</label>
                             <input type="number" name="min_attachment_limit" class="form-control" value="{{ u.min_attachment_limit }}">
                         </div>
-                        <div class="col-6">
-                            <label class="small fw-bold text-danger">Directie vanaf (€)</label>
+                        <div class="col-md-4">
+                            <label class="small fw-bold text-danger">BO-limiet (Directie vanaf €)</label>
                             <input type="number" name="max_bo_limit" class="form-control" value="{{ u.max_bo_limit }}">
                         </div>
+                        
+                        <div class="col-md-12">
+                            <label class="small fw-bold text-muted">Vaste Goedkeurder</label>
+                            <select name="approver_id" class="form-select">
+                                <option value="">Geen (Eindstation / Directie)</option>
+                                {% for a in approvers if a.id != u.id %}
+                                    <option value="{{ a.id }}" {% if u.approver_id == a.id %}selected{% endif %}>{{ a.username }} ({{ a.role }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
-                    
-                    <label class="small fw-bold text-muted">Vaste Goedkeurder</label>
-                    <select name="approver_id" class="form-select">
-                        <option value="" class="fw-bold text-success">Geen (Zelfstandig)</option>
-                        {% for a in approvers if a.id != u.id %}
-                            <option value="{{ a.id }}" {% if u.approver_id == a.id %}selected{% endif %}>{{ a.username }} ({{ a.role }})</option>
-                        {% endfor %}
-                    </select>
                 </div>
                 <div class="modal-footer bg-light border-0">
-                    <button type="submit" class="btn btn-success fw-bold w-100 shadow-sm">Wijzigingen Opslaan</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="submit" class="btn btn-success fw-bold px-4 shadow-sm">Opslaan</button>
                 </div>
             </form>
         </div>

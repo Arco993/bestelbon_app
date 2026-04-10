@@ -54,6 +54,25 @@ def send_status_mail(recipient, subject, body):
         except Exception as e:
             print(f"E-mail fout: {e}")
 
+# --- AUTOMATISCHE ADMIN CREATIE ---
+def ensure_admin():
+    """Zorgt ervoor dat er altijd een admin account bestaat bij de start."""
+    with app.app_context():
+        db.create_all()
+        admin = User.query.filter_by(role='Admin').first()
+        if not admin:
+            # Maak een standaard Admin aan als de DB leeg is
+            new_admin = User(
+                username='Arne', 
+                password='test', 
+                role='Admin', 
+                department_code='ICT',
+                email='arne@delacroix.be'
+            )
+            db.session.add(new_admin)
+            db.session.commit()
+            print("✅ Geen Admin gevonden. Standaard Admin 'Arne' aangemaakt.")
+
 # --- BASIS ROUTES ---
 @app.route('/')
 def index(): 
@@ -64,6 +83,9 @@ def login():
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form.get('username')).first()
         if user and user.password == request.form.get('password'):
+            if not user.is_active:
+                flash('Dit account is gedeactiveerd. Neem contact op met de admin.', 'danger')
+                return redirect(url_for('login'))
             login_user(user)
             return redirect(url_for('dashboard'))
         flash('Foutieve inloggegevens.', 'danger')
@@ -72,16 +94,12 @@ def login():
 @app.route('/dashboard')
 @login_required
 def dashboard(): 
-    # 1. Totaal aantal eigen bonnen
     my_orders_count = Order.query.filter_by(user_id=current_user.id).count()
-    
-    # 2. Totaalbedrag van eigen ingediende/goedgekeurde bonnen
     my_total_spent = db.session.query(func.sum(Order.total_amount)).filter(
         Order.user_id == current_user.id,
         Order.status.in_(['Wachten op BO', 'Wachten op Directie', 'Goedgekeurd'])
     ).scalar() or 0.0
 
-    # 3. Te keuren bonnen (voor BO, Directie en Admin)
     pending_approvals = 0
     if current_user.role == 'Directie':
         pending_approvals = Order.query.filter_by(status='Wachten op Directie').count()
@@ -91,7 +109,6 @@ def dashboard():
     elif current_user.role == 'Admin':
         pending_approvals = Order.query.filter(Order.status.in_(['Wachten op BO', 'Wachten op Directie'])).count()
 
-    # 4. Laatste 5 bonnen voor snelle toegang
     recent_orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.created_at.desc()).limit(5).all()
 
     return render_template('dashboard.html', 
@@ -115,7 +132,6 @@ def new_order():
         form_data = request.form
         gen_ref = request.form.get('generated_order_number')
         
-        # Voorkom dubbele nummers
         if Order.query.filter_by(order_number=gen_ref).first():
             gen_ref = f"{gen_ref}-{secrets.token_hex(2).upper()}"
 
@@ -132,7 +148,6 @@ def new_order():
             db.session.add(supplier)
             db.session.flush()
 
-        # Haal de lijsten op voor de orderregels
         p_codes = request.form.getlist('product_code[]')
         descs = request.form.getlist('desc[]')
         notes = request.form.getlist('internal_note[]')
@@ -140,10 +155,8 @@ def new_order():
         prices = request.form.getlist('price[]')
         taxes = request.form.getlist('tax[]')
         
-        # Bereken totaal
         total_inc = sum([(float(qtys[i] or 0) * float(prices[i] or 0)) for i in range(len(descs))])
 
-        # Bijlage verwerking
         file = request.files.get('attachment')
         attachment_name = None
         if file and allowed_file(file.filename):
@@ -170,9 +183,8 @@ def new_order():
         db.session.add(order)
         db.session.flush()
 
-        # Sla de lijnen op inclusief de nieuwe velden
         for i in range(len(descs)):
-            if descs[i]: # Alleen opslaan als er een omschrijving is
+            if descs[i]:
                 db.session.add(OrderLine(
                     order_id=order.id, 
                     product_code=p_codes[i],
@@ -187,7 +199,6 @@ def new_order():
         flash(f'Bon {gen_ref} verwerkt.', 'success')
         return redirect(url_for('my_orders'))
 
-    # GET request
     next_ref = f"{current_user.department_code or 'GEN'}-{datetime.now().year}-{secrets.token_hex(2).upper()}"
     ap = User.query.get(current_user.approver_id) if current_user.approver_id else None
     return render_template('new_order.html', form_data={}, next_ref=next_ref, approver_name=ap.username if ap else "Direct goedgekeurd")
@@ -235,33 +246,27 @@ def approve_order(order_id):
     order = Order.query.get_or_404(order_id)
     stamp, now = secrets.token_hex(4).upper(), datetime.now()
     
-    # 1. BO Keuring
     if current_user.role == 'BO' and order.status == 'Wachten op BO':
         order.bo_approval_code, order.bo_approval_date, order.bo_name = stamp, now, current_user.username
         order.status = 'Wachten op Directie' if order.total_amount > order.user.max_bo_limit else 'Goedgekeurd'
         
-    # 2. Directie Keuring (Aangepast: Directie mag nu ALTIJD goedkeuren als hij wacht)
     elif current_user.role == 'Directie' and order.status in ['Wachten op Directie', 'Wachten op BO']:
         order.dir_approval_code, order.dir_approval_date, order.dir_name = stamp, now, current_user.username
-        order.status = 'Goedgekeurd' # Directie overrulet alles
+        order.status = 'Goedgekeurd'
     
     db.session.commit()
     if order.notify_on_update and (order.status == 'Goedgekeurd' or order.notification_type == 'Every Step'):
         send_status_mail(order.user.email, f"Update {order.order_number}", f"Status: {order.status}")
     return redirect(url_for('approve_list'))
 
-# --- NIEUWE ROUTE VOOR DE PUSH KNOP ---
 @app.route('/order/escalate/<int:order_id>', methods=['POST'])
 @login_required
 def escalate_order(order_id):
     order = Order.query.get_or_404(order_id)
-    
-    # Check of de ingelogde gebruiker de eigenaar is EN de bon bij de BO ligt
     if order.user_id == current_user.id and order.status == 'Wachten op BO':
         order.status = 'Wachten op Directie'
         db.session.commit()
         flash(f'Bon {order.order_number} is succesvol gepusht naar de Directie.', 'success')
-        
     return redirect(request.referrer or url_for('my_orders'))
 
 @app.route('/order/reject/<int:order_id>', methods=['POST'])
@@ -273,25 +278,7 @@ def reject_order(order_id):
     send_status_mail(order.user.email, f"Afgewezen: {order.order_number}", f"Reden: {order.rejection_reason}")
     return redirect(url_for('approve_list'))
 
-# --- ADMIN & ZOEKEN ---
-@app.route('/admin/all_orders')
-@login_required
-def all_orders():
-    if current_user.role not in ['Directie', 'Admin']: return redirect(url_for('dashboard'))
-    q_sup, q_st, q_dt = request.args.get('supplier', ''), request.args.get('status', ''), request.args.get('dept', '')
-    query = Order.query.join(User).join(Supplier)
-    if q_sup: query = query.filter(Supplier.name.ilike(f"%{q_sup}%"))
-    if q_st: query = query.filter(Order.status == q_st)
-    if q_dt: query = query.filter(User.department_code == q_dt)
-    depts = [d[0] for d in db.session.query(User.department_code).distinct().all()]
-    return render_template('all_orders.html', orders=query.order_by(Order.created_at.desc()).all(), departments=depts, q_supplier=q_sup, q_status=q_st, q_dept=q_dt)
-
-@app.route('/search_supplier')
-def search_supplier():
-    q = request.args.get('q', '').lower()
-    suppliers = Supplier.query.filter(Supplier.name.ilike(f'%{q}%')).all()
-    return jsonify([{'name': s.name, 'street': s.street, 'num': s.house_number, 'zip': s.zip_code, 'city': s.city, 'vat': s.vat_number} for s in suppliers])
-
+# --- ADMIN & BEHEER ---
 @app.route('/setup')
 @login_required
 def setup():
@@ -311,13 +298,11 @@ def add_user():
     app_id = request.form.get('approver_id')
     u = User(
         username=username, email=email, password=request.form.get('password'),
-        role=request.form.get('role'), department=request.form.get('department'), department_code=request.form.get('department_code'),
+        role=request.form.get('role'), department_code=request.form.get('department_code'),
         min_attachment_limit=float(request.form.get('min_attachment_limit') or 500),
         max_bo_limit=float(request.form.get('max_bo_limit') or 1000),
         auto_approve_limit=float(request.form.get('auto_approve_limit') or 50),
-        approver_id=int(app_id) if app_id else None,
-        email_notification_freq=request.form.get('email_notification_freq', 'Direct'),
-        digest_time=request.form.get('digest_time', '08:00')
+        approver_id=int(app_id) if app_id else None
     )
     db.session.add(u)
     db.session.commit()
@@ -327,28 +312,64 @@ def add_user():
 @app.route('/edit_user/<int:user_id>', methods=['POST'])
 @login_required
 def edit_user(user_id):
-    if current_user.role != 'Admin': 
-        return redirect(url_for('dashboard'))
-    
+    if current_user.role != 'Admin': return redirect(url_for('dashboard'))
     u = User.query.get_or_404(user_id)
     try:
         u.username = request.form.get('username')
         u.email = request.form.get('email')
         u.role = request.form.get('role')
         u.department_code = request.form.get('department_code')
+        
         app_id = request.form.get('approver_id')
         u.approver_id = int(app_id) if app_id and app_id != "" else None
+        
+        u.auto_approve_limit = float(request.form.get('auto_approve_limit') or 0)
+        u.min_attachment_limit = float(request.form.get('min_attachment_limit') or 0)
+        u.max_bo_limit = float(request.form.get('max_bo_limit') or 0)
         
         if request.form.get('password'):
             u.password = request.form.get('password')
             
         db.session.commit()
-        flash(f'Gebruiker {u.username} succesvol bijgewerkt.', 'success')
+        flash(f'Gebruiker {u.username} bijgewerkt.', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Fout bij bijwerken: {str(e)}', 'danger')
-        
     return redirect(url_for('setup'))
+
+@app.route('/toggle_user_status/<int:user_id>', methods=['POST'])
+@login_required
+def toggle_user_status(user_id):
+    if current_user.role != 'Admin': return redirect(url_for('dashboard'))
+    if user_id == current_user.id:
+        flash('Je kunt jezelf niet deactiveren!', 'danger')
+        return redirect(url_for('setup'))
+    
+    u = User.query.get_or_404(user_id)
+    u.is_active = not u.is_active # Zet van True naar False of andersom
+    db.session.commit()
+    
+    status_msg = "geactiveerd" if u.is_active else "gedeactiveerd"
+    flash(f'Gebruiker {u.username} is succesvol {status_msg}.', 'info')
+    return redirect(url_for('setup'))
+
+@app.route('/admin/all_orders')
+@login_required
+def all_orders():
+    if current_user.role not in ['Directie', 'Admin']: return redirect(url_for('dashboard'))
+    q_sup, q_st, q_dt = request.args.get('supplier', ''), request.args.get('status', ''), request.args.get('dept', '')
+    query = Order.query.join(User).join(Supplier)
+    if q_sup: query = query.filter(Supplier.name.ilike(f"%{q_sup}%"))
+    if q_st: query = query.filter(Order.status == q_st)
+    if q_dt: query = query.filter(User.department_code == q_dt)
+    depts = [d[0] for d in db.session.query(User.department_code).distinct().all()]
+    return render_template('all_orders.html', orders=query.order_by(Order.created_at.desc()).all(), departments=depts, q_supplier=q_sup, q_status=q_st, q_dept=q_dt)
+
+@app.route('/search_supplier')
+def search_supplier():
+    q = request.args.get('q', '').lower()
+    suppliers = Supplier.query.filter(Supplier.name.ilike(f'%{q}%')).all()
+    return jsonify([{'name': s.name, 'street': s.street, 'num': s.house_number, 'zip': s.zip_code, 'city': s.city, 'vat': s.vat_number} for s in suppliers])
 
 @app.route('/setup-demo')
 def setup_demo():
@@ -389,4 +410,5 @@ def setup_demo():
         return f"❌ Fout: {str(e)}"
 
 if __name__ == '__main__':
+    ensure_admin()  # Zorgt voor admin account bij elke start
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
