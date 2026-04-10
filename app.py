@@ -6,6 +6,7 @@ from flask import Flask, render_template, redirect, url_for, request, flash, jso
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
 from models import db, User, Order, OrderLine, Supplier
+from sqlalchemy import func
 
 app = Flask(__name__)
 
@@ -71,7 +72,33 @@ def login():
 @app.route('/dashboard')
 @login_required
 def dashboard(): 
-    return render_template('dashboard.html')
+    # 1. Totaal aantal eigen bonnen
+    my_orders_count = Order.query.filter_by(user_id=current_user.id).count()
+    
+    # 2. Totaalbedrag van eigen ingediende/goedgekeurde bonnen
+    my_total_spent = db.session.query(func.sum(Order.total_amount)).filter(
+        Order.user_id == current_user.id,
+        Order.status.in_(['Wachten op BO', 'Wachten op Directie', 'Goedgekeurd'])
+    ).scalar() or 0.0
+
+    # 3. Te keuren bonnen (voor BO, Directie en Admin)
+    pending_approvals = 0
+    if current_user.role == 'Directie':
+        pending_approvals = Order.query.filter_by(status='Wachten op Directie').count()
+    elif current_user.role == 'BO':
+        sub_ids = [u.id for u in User.query.filter_by(approver_id=current_user.id).all()]
+        pending_approvals = Order.query.filter(Order.user_id.in_(sub_ids), Order.status == 'Wachten op BO').count()
+    elif current_user.role == 'Admin':
+        pending_approvals = Order.query.filter(Order.status.in_(['Wachten op BO', 'Wachten op Directie'])).count()
+
+    # 4. Laatste 5 bonnen voor snelle toegang
+    recent_orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.created_at.desc()).limit(5).all()
+
+    return render_template('dashboard.html', 
+                           my_orders_count=my_orders_count, 
+                           my_total_spent=my_total_spent,
+                           pending_approvals=pending_approvals,
+                           recent_orders=recent_orders)
 
 @app.route('/logout')
 @login_required
@@ -214,16 +241,38 @@ def my_approvals():
 def approve_order(order_id):
     order = Order.query.get_or_404(order_id)
     stamp, now = secrets.token_hex(4).upper(), datetime.now()
+    
+    # 1. BO Keuring
     if current_user.role == 'BO' and order.status == 'Wachten op BO':
         order.bo_approval_code, order.bo_approval_date, order.bo_name = stamp, now, current_user.username
         order.status = 'Wachten op Directie' if order.total_amount > order.user.max_bo_limit else 'Goedgekeurd'
-    elif current_user.role == 'Directie' and order.status == 'Wachten op Directie':
-        order.dir_approval_code, order.dir_approval_date, order.dir_name, order.status = stamp, now, current_user.username, 'Goedgekeurd'
+        
+    # 2. Directie Keuring (Aangepast: Directie mag nu ALTIJD goedkeuren als hij wacht)
+    elif current_user.role == 'Directie' and order.status in ['Wachten op Directie', 'Wachten op BO']:
+        order.dir_approval_code, order.dir_approval_date, order.dir_name = stamp, now, current_user.username
+        order.status = 'Goedgekeurd' # Directie overrulet alles
     
     db.session.commit()
     if order.notify_on_update and (order.status == 'Goedgekeurd' or order.notification_type == 'Every Step'):
         send_status_mail(order.user.email, f"Update {order.order_number}", f"Status: {order.status}")
     return redirect(url_for('approve_list'))
+
+# --- NIEUWE ROUTE VOOR DE PUSH KNOP ---
+@app.route('/order/escalate/<int:order_id>', methods=['POST'])
+@login_required
+def escalate_order(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    # Check of de ingelogde gebruiker de eigenaar is EN de bon bij de BO ligt
+    if order.user_id == current_user.id and order.status == 'Wachten op BO':
+        order.status = 'Wachten op Directie'
+        db.session.commit()
+        flash(f'Bon {order.order_number} is succesvol gepusht naar de Directie.', 'success')
+        
+        # Optioneel: Mail sturen naar directie dat er een bon is gepusht
+        # send_status_mail('directie@delacroix.be', 'Bon gepusht', f'Bon {order.order_number} is door {current_user.username} gepusht wegens afwezigheid BO.')
+        
+    return redirect(request.referrer or url_for('my_orders'))
 
 @app.route('/order/reject/<int:order_id>', methods=['POST'])
 @login_required
