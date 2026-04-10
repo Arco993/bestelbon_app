@@ -17,7 +17,9 @@
                         <input type="text" name="generated_order_number" class="form-control mb-3 bg-light fw-bold" value="{{ next_ref }}" readonly>
                         
                         <label class="small fw-bold">Referentie / Project</label>
-                        <textarea name="reference" class="form-control mb-3" rows="2" placeholder="Waarvoor is deze bestelling?"></textarea>
+                        <textarea name="reference" 
+                                  class="form-control mb-3 {% if not form_data.get('reference') and request.method == 'POST' %}is-invalid{% endif %}" 
+                                  rows="2" placeholder="Waarvoor is deze bestelling?">{{ form_data.get('reference', '') }}</textarea>
                         
                         <label class="small fw-bold text-muted mb-1"><i class="bi bi-paperclip me-1"></i>Bijlage / Offerte (Optioneel)</label>
                         <input class="form-control form-control-sm mb-3" type="file" name="attachment" accept=".pdf,.png,.jpg,.jpeg">
@@ -32,18 +34,21 @@
                     <div class="card-header bg-primary text-white fw-bold"><i class="bi bi-bell-fill me-2"></i>E-mail Notificaties</div>
                     <div class="card-body">
                         <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" name="notify_on_update" id="notifySwitch" checked>
+                            <input class="form-check-input" type="checkbox" name="notify_on_update" id="notifySwitch" 
+                                   {% if form_data.get('notify_on_update') == 'on' or not form_data %}checked{% endif %}>
                             <label class="form-check-label fw-bold small" for="notifySwitch">Houd mij op de hoogte via mail</label>
                         </div>
                         
                         <div id="notificationOptions">
                             <label class="small fw-bold text-muted d-block mb-2">Wanneer wil je een mail?</label>
                             <div class="form-check small mb-1">
-                                <input class="form-check-input" type="radio" name="notification_type" id="notifyFinal" value="Final" checked>
+                                <input class="form-check-input" type="radio" name="notification_type" id="notifyFinal" value="Final" 
+                                       {% if form_data.get('notification_type') == 'Final' or not form_data %}checked{% endif %}>
                                 <label class="form-check-label" for="notifyFinal">Alleen bij volledige goedkeuring</label>
                             </div>
                             <div class="form-check small">
-                                <input class="form-check-input" type="radio" name="notification_type" id="notifyStep" value="Every Step">
+                                <input class="form-check-input" type="radio" name="notification_type" id="notifyStep" value="Every Step"
+                                       {% if form_data.get('notification_type') == 'Every Step' %}checked{% endif %}>
                                 <label class="form-check-label" for="notifyStep">Bij elke stap (BO & Directie)</label>
                             </div>
                         </div>
@@ -55,20 +60,22 @@
                     <div class="card-body">
                         <label class="small fw-bold">Bedrijfsnaam</label>
                         <div class="input-group mb-2">
-                            <input type="text" id="supplierSearch" name="supplier_name" class="form-control" placeholder="Zoek of typ naam..." required autocomplete="off">
+                            <input type="text" id="supplierSearch" name="supplier_name" 
+                                   class="form-control {% if not form_data.get('supplier_name') and request.method == 'POST' %}is-invalid{% endif %}" 
+                                   placeholder="Zoek of typ naam..." autocomplete="off" value="{{ form_data.get('supplier_name', '') }}">
                             <button class="btn btn-outline-secondary" type="button" id="searchBtn"><i class="bi bi-search"></i></button>
                         </div>
                         <ul id="searchResults" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1000; display: none;"></ul>
 
                         <div class="row g-2 mb-2">
-                            <div class="col-8"><input type="text" id="street" name="street" class="form-control form-control-sm" placeholder="Straat"></div>
-                            <div class="col-4"><input type="text" id="house_number" name="house_number" class="form-control form-control-sm" placeholder="Nr"></div>
+                            <div class="col-8"><input type="text" id="street" name="street" class="form-control form-control-sm" placeholder="Straat" value="{{ form_data.get('street', '') }}"></div>
+                            <div class="col-4"><input type="text" id="house_number" name="house_number" class="form-control form-control-sm" placeholder="Nr" value="{{ form_data.get('house_number', '') }}"></div>
                         </div>
                         <div class="row g-2 mb-2">
-                            <div class="col-4"><input type="text" id="zip_code" name="zip_code" class="form-control form-control-sm" placeholder="Postcode"></div>
-                            <div class="col-8"><input type="text" id="city" name="city" class="form-control form-control-sm" placeholder="Gemeente"></div>
+                            <div class="col-4"><input type="text" id="zip_code" name="zip_code" class="form-control form-control-sm" placeholder="Postcode" value="{{ form_data.get('zip_code', '') }}"></div>
+                            <div class="col-8"><input type="text" id="city" name="city" class="form-control form-control-sm" placeholder="Gemeente" value="{{ form_data.get('city', '') }}"></div>
                         </div>
-                        <input type="text" id="supplier_vat" name="supplier_vat" class="form-control form-control-sm" placeholder="BTW Nummer (BE0...)">
+                        <input type="text" id="supplier_vat" name="supplier_vat" class="form-control form-control-sm" placeholder="BTW Nummer (BE0...)" value="{{ form_data.get('supplier_vat', '') }}">
                     </div>
                 </div>
             </div>
@@ -84,16 +91,20 @@
                             <table class="table mb-0" id="linesTable">
                                 <thead class="table-light small">
                                     <tr>
-                                        <th style="width: 45%;">Omschrijving</th>
-                                        <th style="width: 15%;">Aantal</th>
-                                        <th style="width: 15%;">Prijs/st (ex)</th>
-                                        <th style="width: 15%;">BTW %</th>
-                                        <th style="width: 10%;"></th>
+                                        <th style="width: 15%;">Code</th>
+                                        <th style="width: 30%;">Omschrijving</th>
+                                        <th style="width: 20%;">Interne Nota</th>
+                                        <th style="width: 10%;">Aantal</th>
+                                        <th style="width: 15%;">Prijs/st (Incl.)</th>
+                                        <th style="width: 10%;">BTW</th>
+                                        <th></th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
+                                    <tr class="item-row">
+                                        <td><input type="text" name="product_code[]" class="form-control form-control-sm"></td>
                                         <td><input type="text" name="desc[]" class="form-control form-control-sm" required></td>
+                                        <td><input type="text" name="internal_note[]" class="form-control form-control-sm" placeholder="Vrij veld"></td>
                                         <td><input type="number" name="qty[]" class="form-control form-control-sm qty" value="1" min="1" step="0.01" onchange="calcTotal()" required></td>
                                         <td><input type="number" name="price[]" class="form-control form-control-sm price" value="0.00" step="0.01" onchange="calcTotal()" required></td>
                                         <td>
@@ -107,8 +118,8 @@
                                 </tbody>
                                 <tfoot class="table-light">
                                     <tr>
-                                        <td colspan="3" class="text-end fw-bold">Geschat Totaal (Incl. BTW):</td>
-                                        <td colspan="2" class="fw-bold text-primary fs-5" id="grandTotal">€ 0.00</td>
+                                        <td colspan="4" class="text-end fw-bold">Geschat Totaal (Incl. BTW):</td>
+                                        <td colspan="3" class="fw-bold text-primary fs-5" id="grandTotal">€ 0.00</td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -118,7 +129,7 @@
 
                 <div class="d-flex justify-content-end gap-2">
                     <button type="submit" name="action" value="save" class="btn btn-light border px-4 shadow-sm">Opslaan als Concept</button>
-                    <button type="submit" name="action" value="submit" class="btn btn-delacroix-orange px-5 shadow-sm fw-bold">Indienen ter Goedkeuring</button>
+                    <button type="submit" name="action" value="submit" class="btn btn-brand-orange px-5 shadow-sm fw-bold">Indienen ter Goedkeuring</button>
                 </div>
             </div>
         </div>
@@ -126,7 +137,6 @@
 </div>
 
 <script>
-    // Toggle notificatie opties op basis van switch
     document.getElementById('notifySwitch').addEventListener('change', function() {
         document.getElementById('notificationOptions').style.opacity = this.checked ? '1' : '0.5';
         document.querySelectorAll('input[name="notification_type"]').forEach(el => el.disabled = !this.checked);
@@ -138,8 +148,8 @@
         rows.forEach(row => {
             const qty = parseFloat(row.querySelector('.qty').value) || 0;
             const price = parseFloat(row.querySelector('.price').value) || 0;
-            const tax = parseFloat(row.querySelector('.tax').value) || 0;
-            total += (qty * price) * (1 + (tax / 100));
+            // Omdat de prijs al inclusief BTW is, is de som heel simpel:
+            total += (qty * price);
         });
         document.getElementById('grandTotal').innerText = '€ ' + total.toFixed(2);
     }
@@ -147,8 +157,11 @@
     function addRow() {
         const tbody = document.querySelector('#linesTable tbody');
         const tr = document.createElement('tr');
+        tr.className = "item-row";
         tr.innerHTML = `
+            <td><input type="text" name="product_code[]" class="form-control form-control-sm"></td>
             <td><input type="text" name="desc[]" class="form-control form-control-sm" required></td>
+            <td><input type="text" name="internal_note[]" class="form-control form-control-sm" placeholder="Vrij veld"></td>
             <td><input type="number" name="qty[]" class="form-control form-control-sm qty" value="1" min="1" step="0.01" onchange="calcTotal()" required></td>
             <td><input type="number" name="price[]" class="form-control form-control-sm price" value="0.00" step="0.01" onchange="calcTotal()" required></td>
             <td><select name="tax[]" class="form-select form-select-sm tax" onchange="calcTotal()"><option value="21.0">21%</option><option value="12.0">12%</option><option value="6.0">6%</option><option value="0.0">0%</option></select></td>
@@ -164,6 +177,7 @@
         }
     }
 
+    // Leverancier Zoekfunctie (AJAX)
     const supplierInput = document.getElementById('supplierSearch');
     const searchResults = document.getElementById('searchResults');
 

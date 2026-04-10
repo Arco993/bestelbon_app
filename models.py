@@ -63,7 +63,9 @@ class Order(db.Model):
 class OrderLine(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
+    product_code = db.Column(db.String(50))  # Nieuw: voor productcodes
     description = db.Column(db.String(200))
+    internal_note = db.Column(db.Text)      # Nieuw: het vrije veld (alleen in de tool)
     quantity = db.Column(db.Integer)
     unit_price = db.Column(db.Float)
     tax_rate = db.Column(db.Float, default=21.0)

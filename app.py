@@ -62,7 +62,6 @@ def index():
 def login():
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form.get('username')).first()
-        # FIX: Directe vergelijking voor demo-gemak
         if user and user.password == request.form.get('password'):
             login_user(user)
             return redirect(url_for('dashboard'))
@@ -91,21 +90,40 @@ def toggle_theme():
 @app.route('/order/new', methods=['GET', 'POST'])
 @login_required
 def new_order():
+    form_data = {}
     if request.method == 'POST':
+        form_data = request.form
         gen_ref = request.form.get('generated_order_number')
+        
+        # Voorkom dubbele nummers
         if Order.query.filter_by(order_number=gen_ref).first():
             gen_ref = f"{gen_ref}-{secrets.token_hex(2).upper()}"
 
         s_name = request.form.get('supplier_name')
+        if not s_name:
+            flash('Leverancier is verplicht!', 'danger')
+            return render_template('new_order.html', form_data=form_data, next_ref=gen_ref)
+
         supplier = Supplier.query.filter_by(name=s_name).first() or Supplier(
             name=s_name, street=request.form.get('street'), house_number=request.form.get('house_number'), 
             zip_code=request.form.get('zip_code'), city=request.form.get('city'), vat_number=request.form.get('supplier_vat')
         )
-        if not supplier.id: db.session.add(supplier); db.session.flush()
+        if not supplier.id: 
+            db.session.add(supplier)
+            db.session.flush()
 
-        descs, qtys, prices, taxes = request.form.getlist('desc[]'), request.form.getlist('qty[]'), request.form.getlist('price[]'), request.form.getlist('tax[]')
-        total_inc = sum([(float(qtys[i] or 0) * float(prices[i] or 0)) * (1 + (float(taxes[i] or 0)/100)) for i in range(len(descs))])
+        # Haal de lijsten op voor de orderregels
+        p_codes = request.form.getlist('product_code[]')
+        descs = request.form.getlist('desc[]')
+        notes = request.form.getlist('internal_note[]')
+        qtys = request.form.getlist('qty[]')
+        prices = request.form.getlist('price[]')
+        taxes = request.form.getlist('tax[]')
+        
+        # Bereken totaal
+        total_inc = sum([(float(qtys[i] or 0) * float(prices[i] or 0)) for i in range(len(descs))])
 
+        # Bijlage verwerking
         file = request.files.get('attachment')
         attachment_name = None
         if file and allowed_file(file.filename):
@@ -113,7 +131,8 @@ def new_order():
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], attachment_name))
         elif request.form.get('action') == 'submit' and total_inc > current_user.min_attachment_limit:
             flash(f'Bijlage verplicht boven € {current_user.min_attachment_limit}', 'danger')
-            return redirect(url_for('new_order'))
+            ap = User.query.get(current_user.approver_id) if current_user.approver_id else None
+            return render_template('new_order.html', form_data=form_data, next_ref=gen_ref, approver_name=ap.username if ap else "Direct goedgekeurd")
 
         status = 'Concept'
         if request.form.get('action') == 'submit':
@@ -128,17 +147,30 @@ def new_order():
             notify_on_update=True if request.form.get('notify_on_update') == 'on' else False,
             notification_type=request.form.get('notification_type', 'Final')
         )
-        db.session.add(order); db.session.flush()
+        db.session.add(order)
+        db.session.flush()
+
+        # Sla de lijnen op inclusief de nieuwe velden
         for i in range(len(descs)):
-            db.session.add(OrderLine(order_id=order.id, description=descs[i], quantity=int(float(qtys[i])), unit_price=float(prices[i]), tax_rate=float(taxes[i])))
+            if descs[i]: # Alleen opslaan als er een omschrijving is
+                db.session.add(OrderLine(
+                    order_id=order.id, 
+                    product_code=p_codes[i],
+                    description=descs[i], 
+                    internal_note=notes[i],
+                    quantity=int(float(qtys[i] or 0)), 
+                    unit_price=float(prices[i] or 0), 
+                    tax_rate=float(taxes[i] or 0)
+                ))
         
         db.session.commit()
         flash(f'Bon {gen_ref} verwerkt.', 'success')
         return redirect(url_for('my_orders'))
 
+    # GET request
     next_ref = f"{current_user.department_code or 'GEN'}-{datetime.now().year}-{secrets.token_hex(2).upper()}"
     ap = User.query.get(current_user.approver_id) if current_user.approver_id else None
-    return render_template('new_order.html', next_ref=next_ref, approver_name=ap.username if ap else "Direct goedgekeurd")
+    return render_template('new_order.html', form_data={}, next_ref=next_ref, approver_name=ap.username if ap else "Direct goedgekeurd")
 
 @app.route('/my_orders')
 @login_required
@@ -261,17 +293,13 @@ def edit_user(user_id):
     
     u = User.query.get_or_404(user_id)
     try:
-        # Basis gegevens
         u.username = request.form.get('username')
         u.email = request.form.get('email')
         u.role = request.form.get('role')
         u.department_code = request.form.get('department_code')
-        
-        # Approver koppelen
         app_id = request.form.get('approver_id')
         u.approver_id = int(app_id) if app_id and app_id != "" else None
         
-        # Wachtwoord alleen aanpassen als er iets is ingevuld
         if request.form.get('password'):
             u.password = request.form.get('password')
             
@@ -283,20 +311,17 @@ def edit_user(user_id):
         
     return redirect(url_for('setup'))
 
-# --- DE SETUP-DEMO ROUTE (MET KOEN, BERT, STIJN & ARNE) ---
 @app.route('/setup-demo')
 def setup_demo():
     try:
         db.drop_all()
         db.create_all()
         
-        # Leveranciers
         dell = Supplier(name="Dell Technologies", city="Brussel")
         bol = Supplier(name="Bol.com", city="Antwerpen")
         db.session.add_all([dell, bol])
         db.session.commit()
 
-        # Gebruikers (Wachtwoord overal: test)
         koen = User(username='Koen', password='test', role='Directie', department_code='DIR')
         db.session.add(koen)
         db.session.commit()
@@ -313,7 +338,6 @@ def setup_demo():
         db.session.add(arne)
         db.session.commit()
 
-        # Scenario-bonnen voor Stijn
         b1 = Order(order_number="TD-001", reference="Batterijen", total_amount=15.0, status="Goedgekeurd", user_id=stijn.id, supplier_id=bol.id)
         b2 = Order(order_number="TD-002", reference="Boormachine", total_amount=250.0, status="Wachten op BO", user_id=stijn.id, supplier_id=bol.id)
         b3 = Order(order_number="TD-003", reference="Laptop Stijn", total_amount=1500.0, status="Wachten op BO", user_id=stijn.id, supplier_id=dell.id)
