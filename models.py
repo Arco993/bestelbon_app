@@ -4,13 +4,31 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
+class Department(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    code = db.Column(db.String(10), unique=True, nullable=False)
+    
+    # Het directielid dat verantwoordelijk is voor deze afdeling
+    director_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    # Relaties
+    # 'members' geeft alle gebruikers in deze afdeling
+    members = db.relationship('User', backref='department', lazy=True, foreign_keys='User.department_id')
+    # Link naar de director User object
+    director = db.relationship('User', foreign_keys=[director_id])
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(20), nullable=False) 
-    department = db.Column(db.String(50))
+    
+    # Nieuwe koppeling naar de Department tabel
+    department_id = db.Column(db.Integer, db.ForeignKey('department.id'))
+    
+    # Legacy velden (optioneel behouden voor overgang)
     department_code = db.Column(db.String(5))
     is_active = db.Column(db.Boolean, default=True)
     
@@ -64,9 +82,9 @@ class Order(db.Model):
 class OrderLine(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
-    product_code = db.Column(db.String(50))  # Nieuw: voor productcodes
+    product_code = db.Column(db.String(50))
     description = db.Column(db.String(200))
-    internal_note = db.Column(db.Text)      # Nieuw: het vrije veld (alleen in de tool)
+    internal_note = db.Column(db.Text)
     quantity = db.Column(db.Integer)
     unit_price = db.Column(db.Float)
     tax_rate = db.Column(db.Float, default=21.0)

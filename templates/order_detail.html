@@ -24,7 +24,7 @@
                         <div class="col-md-6 mb-3 text-start">
                             <h6 class="text-muted small fw-bold text-uppercase">Aanvrager</h6>
                             <p class="mb-0"><strong>{{ order.user.username }}</strong></p>
-                            <p class="text-muted small">{{ order.user.department }}</p>
+                            <p class="text-muted small">{{ order.user.department.name if order.user.department else 'Geen afdeling' }}</p>
                         </div>
                         <div class="col-md-6 mb-3 text-md-end">
                             <h6 class="text-muted small fw-bold text-uppercase">Leverancier</h6>
@@ -58,10 +58,17 @@
                             <tbody>
                                 {% for line in order.lines %}
                                 <tr>
-                                    <td>{{ line.description }}</td>
-                                    <td class="text-center">{{ line.quantity }}</td>
-                                    <td class="text-end">€ {{ "%.2f"|format(line.unit_price) }}</td>
-                                    <td class="text-end fw-bold">€ {{ "%.2f"|format((line.quantity * line.unit_price) * (1 + line.tax_rate/100)) }}</td>
+                                    <td>
+                                        {{ line.description }}
+                                        {% if line.internal_note %}
+                                            <span class="d-block text-muted small mt-1 fst-italic">
+                                                <i class="bi bi-info-circle me-1"></i>Interne nota: {{ line.internal_note }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center align-middle">{{ line.quantity }}</td>
+                                    <td class="text-end align-middle">€ {{ "%.2f"|format(line.unit_price) }}</td>
+                                    <td class="text-end fw-bold align-middle">€ {{ "%.2f"|format((line.quantity * line.unit_price) * (1 + line.tax_rate/100)) }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -104,10 +111,10 @@
                 </div>
             </div>
 
-            {% if (current_user.role == 'BO' and order.status == 'Wachten op BO' and order.user.approver_id == current_user.id) or 
+            {% if (current_user.role == 'BO' and order.status == 'Wachten op BO' and order.user.department_id == current_user.department_id and order.user.id != current_user.id) or 
                   (current_user.role == 'Directie' and order.status == 'Wachten op Directie') %}
             <div class="d-grid gap-2 mb-3">
-                <a href="{{ url_for('approve_order', order_id=order.id) }}" class="btn btn-delacroix-orange btn-lg shadow-sm">
+                <a href="{{ url_for('approve_order', order_id=order.id) }}" class="btn btn-success btn-lg shadow-sm">
                     <i class="bi bi-check-circle-fill me-2"></i> Goedkeuren
                 </a>
                 <button type="button" class="btn btn-outline-danger shadow-sm" data-bs-toggle="modal" data-bs-target="#rejectModal">
