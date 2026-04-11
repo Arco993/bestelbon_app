@@ -5,7 +5,7 @@ from werkzeug.utils import secure_filename
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_mail import Mail, Message
-from models import db, User, Order, OrderLine, Supplier, Department  # Department toegevoegd
+from models import db, User, Order, OrderLine, Supplier, Department, Attachment  # Attachment toegevoegd
 from sqlalchemy import func
 
 app = Flask(__name__)
@@ -56,7 +56,6 @@ def send_status_mail(recipient, subject, body):
 
 # --- AUTOMATISCHE ADMIN CREATIE ---
 def ensure_admin():
-    """Zorgt ervoor dat er altijd een admin account bestaat bij de start."""
     with app.app_context():
         db.create_all()
         print("🔍 Checking for admin...") 
@@ -104,15 +103,12 @@ def dashboard():
     if current_user.role == 'Admin':
         pending_approvals = Order.query.filter(Order.status.in_(['Wachten op BO', 'Wachten op Directie'])).count()
     elif current_user.role == 'BO':
-        # FIX: BO kijkt nu naar afdeling, niet meer naar oude approver_id
         pending_approvals = Order.query.join(User, Order.user_id == User.id)\
                                       .filter(User.department_id == current_user.department_id, 
                                               Order.status == 'Wachten op BO',
                                               Order.user_id != current_user.id).count()
     elif current_user.role == 'Directie':
         sub_direct_ids = [u.id for u in User.query.filter_by(approver_id=current_user.id).all()]
-        
-        # FIX: Haal eerst de afdelingen op, dan de medewerkers (geen verwarring meer)
         managed_depts = Department.query.filter_by(director_id=current_user.id).all()
         managed_dept_ids = [d.id for d in managed_depts]
         dept_user_ids = [u.id for u in User.query.filter(User.department_id.in_(managed_dept_ids)).all()] if managed_dept_ids else []
@@ -162,42 +158,56 @@ def new_order():
         prices = request.form.getlist('price[]')
         total_inc = sum([(float(qtys[i] or 0) * float(prices[i] or 0)) for i in range(len(descs))])
 
-        file = request.files.get('attachment')
-        attachment_name = None
-        if file and allowed_file(file.filename):
-            attachment_name = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{secure_filename(file.filename)}"
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], attachment_name))
-        elif request.form.get('action') == 'submit' and total_inc > current_user.min_attachment_limit:
-            flash(f'Bijlage verplicht boven € {current_user.min_attachment_limit}', 'danger')
-            return render_template('new_order.html', form_data=form_data, next_ref=gen_ref)
+        # --- BULLETPROOF BIJLAGEN LOGICA ---
+        # We checken alle mogelijke manieren waarop browsers meerdere bestanden doorsturen
+        files = request.files.getlist('attachments[]')
+        if not files or all(f.filename == '' for f in files):
+            files = request.files.getlist('attachments')
+        if not files or all(f.filename == '' for f in files):
+            files = request.files.getlist('attachment') # Fallback voor de zekerheid
+
+        saved_filenames = []
+        has_valid_file = False
+        
+        for file in files:
+            if file and file.filename and allowed_file(file.filename):
+                fname = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(2)}_{secure_filename(file.filename)}"
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+                saved_filenames.append(fname)
+                has_valid_file = True
+
+        if request.form.get('action') == 'submit' and total_inc > current_user.min_attachment_limit:
+            if not has_valid_file:
+                flash(f'Minimaal één bijlage is verplicht boven € {current_user.min_attachment_limit}', 'danger')
+                return render_template('new_order.html', form_data=form_data, next_ref=gen_ref)
 
         status = 'Concept'
         if request.form.get('action') == 'submit':
-            # 1. Check voor Auto-approve
             if total_inc <= current_user.auto_approve_limit:
                 status = 'Goedgekeurd'
             else:
-                # 2. Bepaal of het naar BO of Directie moet
                 if current_user.role == 'Personeel':
                     status = 'Wachten op BO'
                 elif current_user.role == 'BO':
-                    # Als de BO zelf de aanvrager is, checken we zijn limiet
                     if total_inc > current_user.max_bo_limit:
                         status = 'Wachten op Directie'
                     else:
                         status = 'Goedgekeurd'
                 else:
-                    # Admin of Directie keuren hun eigen bonnen (onder voorbehoud) direct goed
                     status = 'Goedgekeurd'
 
         order = Order(
             order_number=gen_ref, reference=request.form.get('reference'), user_id=current_user.id, 
-            supplier_id=supplier.id, status=status, total_amount=total_inc, attachment_filename=attachment_name,
+            supplier_id=supplier.id, status=status, total_amount=total_inc, attachment_filename=None,
             notify_on_update=True if request.form.get('notify_on_update') == 'on' else False,
             notification_type=request.form.get('notification_type', 'Final')
         )
         db.session.add(order)
         db.session.flush()
+
+        # Sla de bestanden netjes op in de database
+        for fname in saved_filenames:
+            db.session.add(Attachment(order_id=order.id, filename=fname))
 
         for i in range(len(descs)):
             if descs[i]:
@@ -210,7 +220,6 @@ def new_order():
         flash(f'Bon {gen_ref} verwerkt.', 'success')
         return redirect(url_for('my_orders'))
 
-    # Gebruik afdelingscode voor de referentie
     dept_code = current_user.department.code if current_user.department else 'GEN'
     next_ref = f"{dept_code}-{datetime.now().year}-{secrets.token_hex(2).upper()}"
     return render_template('new_order.html', form_data={}, next_ref=next_ref)
@@ -241,20 +250,16 @@ def approve_list():
     if current_user.role == 'Admin':
         orders = Order.query.filter(Order.status.in_(['Wachten op BO', 'Wachten op Directie'])).all()
     elif current_user.role == 'BO':
-        # De BO ziet alle bonnen van zijn eigen afdeling die op 'Wachten op BO' staan
         orders = Order.query.join(User).filter(
             User.department_id == current_user.department_id,
             Order.status == 'Wachten op BO',
-            Order.user_id != current_user.id  # Je keurt niet je eigen bon
+            Order.user_id != current_user.id 
         ).all()
     elif current_user.role == 'Directie':
-        # FIX: Exact dezelfde veilige methode voor de lijst
         sub_direct_ids = [u.id for u in User.query.filter_by(approver_id=current_user.id).all()]
-        
         managed_depts = Department.query.filter_by(director_id=current_user.id).all()
         managed_dept_ids = [d.id for d in managed_depts]
         dept_user_ids = [u.id for u in User.query.filter(User.department_id.in_(managed_dept_ids)).all()] if managed_dept_ids else []
-        
         all_relevant_user_ids = list(set(sub_direct_ids + dept_user_ids))
         
         if all_relevant_user_ids:
@@ -285,7 +290,6 @@ def approve_order(order_id):
 def escalate_order(order_id):
     order = Order.query.get_or_404(order_id)
     if order.user_id == current_user.id and order.status == 'Wachten op BO':
-        # Hiërarchie via Afdeling: Wie is de directeur van de afdeling van de aanvrager?
         if order.user.department and order.user.department.director:
             next_approver = order.user.department.director
             order.status = 'Wachten op Directie'
@@ -423,7 +427,6 @@ def toggle_user_status(user_id):
 def my_approvals():
     if current_user.role not in ['BO', 'Directie', 'Admin']: 
         return redirect(url_for('dashboard'))
-    # Toon geschiedenis van wat deze persoon gekeurd heeft
     orders = Order.query.filter((Order.bo_name == current_user.username) | (Order.dir_name == current_user.username)).order_by(Order.created_at.desc()).all()
     return render_template('approved_history.html', orders=orders)
 
@@ -432,7 +435,6 @@ def my_approvals():
 def all_orders():
     if current_user.role not in ['Directie', 'Admin']: return redirect(url_for('dashboard'))
     query = Order.query.join(User)
-    # Filteren kan hier uitgebreid worden met Department
     return render_template('all_orders.html', orders=query.order_by(Order.created_at.desc()).all())
 
 @app.route('/search_supplier')

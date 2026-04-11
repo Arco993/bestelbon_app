@@ -13,9 +13,7 @@ class Department(db.Model):
     director_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     
     # Relaties
-    # 'members' geeft alle gebruikers in deze afdeling
     members = db.relationship('User', backref='department', lazy=True, foreign_keys='User.department_id')
-    # Link naar de director User object
     director = db.relationship('User', foreign_keys=[director_id])
 
 class User(db.Model, UserMixin):
@@ -25,10 +23,7 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(20), nullable=False) 
     
-    # Nieuwe koppeling naar de Department tabel
     department_id = db.Column(db.Integer, db.ForeignKey('department.id'))
-    
-    # Legacy velden (optioneel behouden voor overgang)
     department_code = db.Column(db.String(5))
     is_active = db.Column(db.Boolean, default=True)
     
@@ -53,6 +48,12 @@ class Supplier(db.Model):
     country = db.Column(db.String(100), default="België")
     vat_number = db.Column(db.String(20))
 
+# NIEUW: Tabel voor meerdere bijlagen
+class Attachment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
+    filename = db.Column(db.String(255))
+
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_number = db.Column(db.String(50), unique=True)
@@ -63,7 +64,9 @@ class Order(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
     
+    # Legacy: voor de oude bonnen met 1 bijlage
     attachment_filename = db.Column(db.String(255))
+    
     rejection_reason = db.Column(db.Text)
     notify_on_update = db.Column(db.Boolean, default=True)
     notification_type = db.Column(db.String(20), default='Final')
@@ -78,6 +81,8 @@ class Order(db.Model):
 
     supplier = db.relationship('Supplier', backref='orders', lazy=True)
     lines = db.relationship('OrderLine', backref='order', lazy=True)
+    # NIEUW: Koppeling met de Attachment tabel
+    attachments = db.relationship('Attachment', backref='order', lazy=True)
 
 class OrderLine(db.Model):
     id = db.Column(db.Integer, primary_key=True)

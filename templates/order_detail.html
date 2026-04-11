@@ -37,12 +37,22 @@
                     <h6 class="text-muted small fw-bold text-uppercase">Referentie / Project</h6>
                     <p class="mb-0">{{ order.reference or 'Geen projectomschrijving opgegeven' }}</p>
                     
-                    {% if order.attachment_filename %}
+                    {% if order.attachments or order.attachment_filename %}
                     <hr>
-                    <h6 class="text-muted small fw-bold text-uppercase"><i class="bi bi-paperclip me-1"></i>Bijlage / Offerte</h6>
-                    <a href="{{ url_for('static', filename='uploads/' + order.attachment_filename) }}" target="_blank" class="btn btn-outline-secondary btn-sm mt-1">
-                        <i class="bi bi-file-earmark-pdf text-danger me-1"></i> Bekijk Document
-                    </a>
+                    <h6 class="text-muted small fw-bold text-uppercase"><i class="bi bi-paperclip me-1"></i>Bijlage(n) / Offerte(s)</h6>
+                    <div class="d-flex flex-wrap gap-2 mt-1">
+                        {% if order.attachment_filename %}
+                        <a href="{{ url_for('static', filename='uploads/' + order.attachment_filename) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-file-earmark-pdf text-danger me-1"></i> Document
+                        </a>
+                        {% endif %}
+                        
+                        {% for att in order.attachments %}
+                        <a href="{{ url_for('static', filename='uploads/' + att.filename) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-file-earmark-pdf text-danger me-1"></i> Bijlage {{ loop.index }}
+                        </a>
+                        {% endfor %}
+                    </div>
                     {% endif %}
                 </div>
             </div>
