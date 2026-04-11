@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container pb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-dark"><i class="bi bi-pencil-square me-2 text-primary"></i>Concept Aanpassen</h2>
+        <span class="badge bg-secondary fs-6 px-3 py-2">Concept</span>
+    </div>
+
+    <form method="POST" action="{{ url_for('edit_order', order_id=order.id) }}" id="orderForm" enctype="multipart/form-data">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-dark text-white fw-bold">Algemene Info</div>
+                    <div class="card-body">
+                        <label class="small fw-bold">Bonnummer</label>
+                        <input type="text" class="form-control mb-3 bg-light fw-bold" value="{{ order.order_number }}" readonly>
+                        
+                        <label class="small fw-bold">Referentie / Project</label>
+                        <textarea name="reference" class="form-control mb-3" rows="2" placeholder="Waarvoor is deze bestelling?">{{ order.reference or '' }}</textarea>
+                        
+                        <label class="small fw-bold text-muted mb-1"><i class="bi bi-paperclip me-1"></i>Extra Bijlage(n) Toevoegen</label>
+                        <input class="form-control form-control-sm mb-1" type="file" id="fileUpload" name="attachments" accept=".pdf,.png,.jpg,.jpeg" multiple>
+                        <div id="fileListPreview" class="small text-primary mb-3 fw-bold fst-italic"></div>
+
+                        {% if order.attachments or order.attachment_filename %}
+                        <div class="small mb-3 p-2 bg-light rounded border">
+                            <strong><i class="bi bi-paperclip"></i> Reeds toegevoegd:</strong><br>
+                            {% if order.attachment_filename %} <span class="text-muted">- Document (Oude stijl)</span><br> {% endif %}
+                            {% for att in order.attachments %}
+                                <span class="text-muted">- {{ att.filename.split('_')[-1] }}</span><br>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-primary text-white fw-bold"><i class="bi bi-bell-fill me-2"></i>E-mail Notificaties</div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" name="notify_on_update" id="notifySwitch" {% if order.notify_on_update %}checked{% endif %}>
+                            <label class="form-check-label fw-bold small" for="notifySwitch">Houd mij op de hoogte via mail</label>
+                        </div>
+                        <div id="notificationOptions" style="opacity: {% if order.notify_on_update %}1{% else %}0.5{% endif %};">
+                            <label class="small fw-bold text-muted d-block mb-2">Wanneer wil je een mail?</label>
+                            <div class="form-check small mb-1">
+                                <input class="form-check-input" type="radio" name="notification_type" id="notifyFinal" value="Final" {% if order.notification_type == 'Final' %}checked{% endif %} {% if not order.notify_on_update %}disabled{% endif %}>
+                                <label class="form-check-label" for="notifyFinal">Alleen bij volledige goedkeuring</label>
+                            </div>
+                            <div class="form-check small">
+                                <input class="form-check-input" type="radio" name="notification_type" id="notifyStep" value="Every Step" {% if order.notification_type == 'Every Step' %}checked{% endif %} {% if not order.notify_on_update %}disabled{% endif %}>
+                                <label class="form-check-label" for="notifyStep">Bij elke stap (BO & Directie)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-dark text-white fw-bold">Leverancier</div>
+                    <div class="card-body">
+                        <label class="small fw-bold">Bedrijfsnaam</label>
+                        <div class="input-group mb-2">
+                            <input type="text" id="supplierSearch" name="supplier_name" class="form-control" placeholder="Zoek of typ naam..." autocomplete="off" value="{{ order.supplier.name }}">
+                            <button class="btn btn-outline-secondary" type="button"><i class="bi bi-search"></i></button>
+                        </div>
+                        <ul id="searchResults" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1000; display: none;"></ul>
+
+                        <div class="row g-2 mb-2">
+                            <div class="col-8"><input type="text" id="street" name="street" class="form-control form-control-sm" placeholder="Straat" value="{{ order.supplier.street or '' }}"></div>
+                            <div class="col-4"><input type="text" id="house_number" name="house_number" class="form-control form-control-sm" placeholder="Nr" value="{{ order.supplier.house_number or '' }}"></div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-4"><input type="text" id="zip_code" name="zip_code" class="form-control form-control-sm" placeholder="Postcode" value="{{ order.supplier.zip_code or '' }}"></div>
+                            <div class="col-8"><input type="text" id="city" name="city" class="form-control form-control-sm" placeholder="Gemeente" value="{{ order.supplier.city or '' }}"></div>
+                        </div>
+                        <input type="text" id="supplier_vat" name="supplier_vat" class="form-control form-control-sm" placeholder="BTW Nummer (BE0...)" value="{{ order.supplier.vat_number or '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+                        <span>Bestelde Producten / Diensten</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addRow()"><i class="bi bi-plus-lg"></i> Regel Toevoegen</button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table mb-0" id="linesTable">
+                                <thead class="table-light small">
+                                    <tr>
+                                        <th style="width: 15%;">Code</th>
+                                        <th style="width: 30%;">Omschrijving</th>
+                                        <th style="width: 20%;">Interne Nota</th>
+                                        <th style="width: 10%;">Aantal</th>
+                                        <th style="width: 15%;">Prijs/st (Incl.)</th>
+                                        <th style="width: 10%;">BTW</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for line in order.lines %}
+                                    <tr class="item-row">
+                                        <td><input type="text" name="product_code[]" class="form-control form-control-sm" value="{{ line.product_code or '' }}"></td>
+                                        <td><input type="text" name="desc[]" class="form-control form-control-sm" value="{{ line.description }}" required></td>
+                                        <td><input type="text" name="internal_note[]" class="form-control form-control-sm" value="{{ line.internal_note or '' }}" placeholder="Vrij veld"></td>
+                                        <td><input type="number" name="qty[]" class="form-control form-control-sm qty" value="{{ line.quantity }}" min="1" step="0.01" onchange="calcTotal()" required></td>
+                                        <td><input type="number" name="price[]" class="form-control form-control-sm price" value="{{ line.unit_price }}" step="0.01" onchange="calcTotal()" required></td>
+                                        <td>
+                                            <select name="tax[]" class="form-select form-select-sm tax" onchange="calcTotal()">
+                                                <option value="21.0" {% if line.tax_rate == 21.0 %}selected{% endif %}>21%</option>
+                                                <option value="12.0" {% if line.tax_rate == 12.0 %}selected{% endif %}>12%</option>
+                                                <option value="6.0" {% if line.tax_rate == 6.0 %}selected{% endif %}>6%</option>
+                                                <option value="0.0" {% if line.tax_rate == 0.0 %}selected{% endif %}>0%</option>
+                                            </select>
+                                        </td>
+                                        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)"><i class="bi bi-trash"></i></button></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td colspan="4" class="text-end fw-bold">Geschat Totaal (Incl. BTW):</td>
+                                        <td colspan="3" class="fw-bold text-primary fs-5" id="grandTotal">€ 0.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="submit" name="action" value="save" class="btn btn-light border px-4 shadow-sm">Concept Bijwerken</button>
+                    <button type="submit" name="action" value="submit" class="btn btn-brand-orange px-5 shadow-sm fw-bold">Indienen ter Goedkeuring</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('fileUpload').addEventListener('change', function() {
+        const list = document.getElementById('fileListPreview');
+        list.innerHTML = '';
+        if (this.files.length > 1) {
+            list.innerHTML = '<i class="bi bi-check2-all me-1"></i> ' + this.files.length + ' nieuwe bestanden geselecteerd:';
+        } else if (this.files.length === 1) {
+            list.innerHTML = '<i class="bi bi-check2 me-1"></i> 1 nieuw bestand geselecteerd: <span class="text-muted fw-normal">' + this.files[0].name + '</span>';
+        }
+    });
+
+    document.getElementById('notifySwitch').addEventListener('change', function() {
+        document.getElementById('notificationOptions').style.opacity = this.checked ? '1' : '0.5';
+        document.querySelectorAll('input[name="notification_type"]').forEach(el => el.disabled = !this.checked);
+    });
+
+    function calcTotal() {
+        let total = 0;
+        const rows = document.querySelectorAll('#linesTable tbody tr');
+        rows.forEach(row => {
+            const qty = parseFloat(row.querySelector('.qty').value) || 0;
+            const price = parseFloat(row.querySelector('.price').value) || 0;
+            total += (qty * price);
+        });
+        document.getElementById('grandTotal').innerText = '€ ' + total.toFixed(2);
+    }
+
+    function addRow() {
+        const tbody = document.querySelector('#linesTable tbody');
+        const tr = document.createElement('tr');
+        tr.className = "item-row";
+        tr.innerHTML = `
+            <td><input type="text" name="product_code[]" class="form-control form-control-sm"></td>
+            <td><input type="text" name="desc[]" class="form-control form-control-sm" required></td>
+            <td><input type="text" name="internal_note[]" class="form-control form-control-sm" placeholder="Vrij veld"></td>
+            <td><input type="number" name="qty[]" class="form-control form-control-sm qty" value="1" min="1" step="0.01" onchange="calcTotal()" required></td>
+            <td><input type="number" name="price[]" class="form-control form-control-sm price" value="0.00" step="0.01" onchange="calcTotal()" required></td>
+            <td><select name="tax[]" class="form-select form-select-sm tax" onchange="calcTotal()"><option value="21.0">21%</option><option value="12.0">12%</option><option value="6.0">6%</option><option value="0.0">0%</option></select></td>
+            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)"><i class="bi bi-trash"></i></button></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function removeRow(btn) {
+        if (document.querySelectorAll('#linesTable tbody tr').length > 1) {
+            btn.closest('tr').remove();
+            calcTotal();
+        }
+    }
+
+    const supplierInput = document.getElementById('supplierSearch');
+    const searchResults = document.getElementById('searchResults');
+
+    supplierInput.addEventListener('input', function() {
+        const query = this.value;
+        if (query.length < 2) {
+            searchResults.style.display = 'none';
+            return;
+        }
+
+        fetch(`/search_supplier?q=${query}`)
+            .then(response => response.json())
+            .then(data => {
+                searchResults.innerHTML = '';
+                if (data.length > 0) {
+                    data.forEach(s => {
+                        const li = document.createElement('li');
+                        li.classList.add('list-group-item', 'list-group-item-action');
+                        li.style.cursor = 'pointer';
+                        li.innerHTML = `<strong>${s.name}</strong> <small class="text-muted">(${s.city})</small>`;
+                        li.onclick = function() {
+                            supplierInput.value = s.name;
+                            document.getElementById('street').value = s.street || '';
+                            document.getElementById('house_number').value = s.num || '';
+                            document.getElementById('zip_code').value = s.zip || '';
+                            document.getElementById('city').value = s.city || '';
+                            document.getElementById('supplier_vat').value = s.vat || '';
+                            searchResults.style.display = 'none';
+                        };
+                        searchResults.appendChild(li);
+                    });
+                    searchResults.style.display = 'block';
+                } else {
+                    searchResults.style.display = 'none';
+                }
+            });
+    });
+
+    document.addEventListener('click', function(e) {
+        if (e.target !== supplierInput) {
+            searchResults.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', calcTotal);
+</script>
+{% endblock %}

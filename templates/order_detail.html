@@ -121,6 +121,19 @@
                 </div>
             </div>
 
+            {% if order.status == 'Concept' and order.user_id == current_user.id %}
+            <div class="d-grid gap-2 mb-3">
+                <a href="{{ url_for('edit_order', order_id=order.id) }}" class="btn btn-primary btn-lg shadow-sm">
+                    <i class="bi bi-pencil-square me-2"></i> Concept Verder Aanvullen
+                </a>
+                <form action="{{ url_for('delete_order', order_id=order.id) }}" method="POST" onsubmit="return confirm('Weet je zeker dat je dit concept definitief wilt verwijderen? Dit kan niet ongedaan worden gemaakt.');">
+                    <button type="submit" class="btn btn-outline-danger w-100 shadow-sm">
+                        <i class="bi bi-trash me-2"></i> Concept Wissen
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
             {% if (current_user.role == 'BO' and order.status == 'Wachten op BO' and order.user.department_id == current_user.department_id and order.user.id != current_user.id) or 
                   (current_user.role == 'Directie' and order.status == 'Wachten op Directie') %}
             <div class="d-grid gap-2 mb-3">

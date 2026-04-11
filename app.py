@@ -235,6 +235,106 @@ def my_orders():
 def order_detail(order_id):
     return render_template('order_detail.html', order=Order.query.get_or_404(order_id))
 
+@app.route('/order/edit/<int:order_id>', methods=['GET', 'POST'])
+@login_required
+def edit_order(order_id):
+    order = Order.query.get_or_404(order_id)
+    
+    # Beveiliging: Alleen de maker mag zijn concept aanpassen
+    if order.user_id != current_user.id or order.status != 'Concept':
+        flash('Je kunt deze bon niet meer aanpassen.', 'danger')
+        return redirect(url_for('my_orders'))
+
+    if request.method == 'POST':
+        # 1. Update Leverancier
+        s_name = request.form.get('supplier_name')
+        supplier = Supplier.query.filter_by(name=s_name).first() or Supplier(
+            name=s_name, street=request.form.get('street'), house_number=request.form.get('house_number'), 
+            zip_code=request.form.get('zip_code'), city=request.form.get('city'), vat_number=request.form.get('supplier_vat')
+        )
+        if not supplier.id: 
+            db.session.add(supplier)
+            db.session.flush()
+        
+        order.supplier_id = supplier.id
+        order.reference = request.form.get('reference')
+        order.notify_on_update = True if request.form.get('notify_on_update') == 'on' else False
+        order.notification_type = request.form.get('notification_type', 'Final')
+
+        # 2. Update Artikelen (Wis de oude, maak nieuwe aan)
+        OrderLine.query.filter_by(order_id=order.id).delete()
+        
+        descs = request.form.getlist('desc[]')
+        qtys = request.form.getlist('qty[]')
+        prices = request.form.getlist('price[]')
+        product_codes = request.form.getlist('product_code[]')
+        internal_notes = request.form.getlist('internal_note[]')
+        taxes = request.form.getlist('tax[]')
+        
+        total_inc = sum([(float(qtys[i] or 0) * float(prices[i] or 0)) for i in range(len(descs))])
+        order.total_amount = total_inc
+
+        for i in range(len(descs)):
+            if descs[i]:
+                db.session.add(OrderLine(
+                    order_id=order.id, product_code=product_codes[i],
+                    description=descs[i], internal_note=internal_notes[i],
+                    quantity=int(float(qtys[i] or 0)), unit_price=float(prices[i] or 0), tax_rate=float(taxes[i] or 0)
+                ))
+
+        # 3. Handle extra bijlagen
+        files = request.files.getlist('attachments')
+        if not files or all(f.filename == '' for f in files):
+            files = request.files.getlist('attachments[]') # Fallback
+            
+        has_valid_file = bool(order.attachments) or bool(order.attachment_filename)
+        
+        for file in files:
+            if file and file.filename and allowed_file(file.filename):
+                fname = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(2)}_{secure_filename(file.filename)}"
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+                db.session.add(Attachment(order_id=order.id, filename=fname))
+                has_valid_file = True
+
+        # 4. Status bepalen bij Indienen
+        if request.form.get('action') == 'submit':
+            if total_inc > current_user.min_attachment_limit and not has_valid_file:
+                flash(f'Minimaal één bijlage is verplicht boven € {current_user.min_attachment_limit}', 'danger')
+                return redirect(url_for('edit_order', order_id=order.id))
+                
+            if total_inc <= current_user.auto_approve_limit:
+                order.status = 'Goedgekeurd'
+            else:
+                if current_user.role == 'Personeel':
+                    order.status = 'Wachten op BO'
+                elif current_user.role == 'BO':
+                    order.status = 'Wachten op Directie' if total_inc > current_user.max_bo_limit else 'Goedgekeurd'
+                else:
+                    order.status = 'Goedgekeurd'
+        
+        db.session.commit()
+        flash(f'Bon {order.order_number} succesvol bijgewerkt.', 'success')
+        return redirect(url_for('my_orders'))
+
+    return render_template('edit_order.html', order=order)
+
+@app.route('/order/delete/<int:order_id>', methods=['POST'])
+@login_required
+def delete_order(order_id):
+    order = Order.query.get_or_404(order_id)
+    if order.user_id != current_user.id or order.status != 'Concept':
+        flash('Je kunt deze bon niet verwijderen.', 'danger')
+        return redirect(url_for('my_orders'))
+    
+    # Verwijder regels en bijlagen uit de DB, en vervolgens de bon
+    OrderLine.query.filter_by(order_id=order.id).delete()
+    Attachment.query.filter_by(order_id=order.id).delete()
+    db.session.delete(order)
+    db.session.commit()
+    
+    flash('Concept bestelbon definitief verwijderd.', 'success')
+    return redirect(url_for('my_orders'))
+
 @app.route('/order/<int:order_id>/pdf')
 @login_required
 def order_pdf(order_id):
