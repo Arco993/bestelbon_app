@@ -94,21 +94,42 @@ def login():
 @app.route('/dashboard')
 @login_required
 def dashboard(): 
+    # 1. Totaal aantal eigen bonnen
     my_orders_count = Order.query.filter_by(user_id=current_user.id).count()
+    
+    # 2. Totaalbedrag van eigen bonnen
     my_total_spent = db.session.query(func.sum(Order.total_amount)).filter(
         Order.user_id == current_user.id,
-        Order.status.in_(['Wachten op BO', 'Wachten op Directie', 'Goedgekeurd'])
+        Order.status.not_in(['Concept', 'Afgewezen'])
     ).scalar() or 0.0
 
+    # 3. Te keuren bonnen (HIERARCHISCH)
     pending_approvals = 0
-    if current_user.role == 'Directie':
-        pending_approvals = Order.query.filter_by(status='Wachten op Directie').count()
-    elif current_user.role == 'BO':
-        sub_ids = [u.id for u in User.query.filter_by(approver_id=current_user.id).all()]
-        pending_approvals = Order.query.filter(Order.user_id.in_(sub_ids), Order.status == 'Wachten op BO').count()
-    elif current_user.role == 'Admin':
+    
+    if current_user.role == 'Admin':
         pending_approvals = Order.query.filter(Order.status.in_(['Wachten op BO', 'Wachten op Directie'])).count()
+        
+    elif current_user.role == 'BO':
+        # Alleen bonnen van mensen die dit BO-lid als goedkeurder hebben
+        pending_approvals = Order.query.join(User, Order.user_id == User.id)\
+                                      .filter(User.approver_id == current_user.id, Order.status == 'Wachten op BO').count()
+                                      
+    elif current_user.role == 'Directie':
+        # Stap 1: Wie heeft dit directielid als directe goedkeurder? (bijv. Bert)
+        sub_direct_ids = [u.id for u in User.query.filter_by(approver_id=current_user.id).all()]
+        
+        # Stap 2: Wie heeft die mensen weer als goedkeurder? (bijv. Stijn)
+        sub_indirect_ids = [u.id for u in User.query.filter(User.approver_id.in_(sub_direct_ids)).all()] if sub_direct_ids else []
+        
+        # Stap 3: Tel alleen bonnen van deze mensen die op 'Wachten op Directie' staan
+        all_relevant_user_ids = sub_direct_ids + sub_indirect_ids
+        if all_relevant_user_ids:
+            pending_approvals = Order.query.filter(
+                Order.user_id.in_(all_relevant_user_ids),
+                Order.status == 'Wachten op Directie'
+            ).count()
 
+    # 4. Laatste 5 bonnen
     recent_orders = Order.query.filter_by(user_id=current_user.id).order_by(Order.created_at.desc()).limit(5).all()
 
     return render_template('dashboard.html', 
@@ -116,7 +137,6 @@ def dashboard():
                            my_total_spent=my_total_spent,
                            pending_approvals=pending_approvals,
                            recent_orders=recent_orders)
-
 @app.route('/logout')
 @login_required
 def logout():
@@ -223,14 +243,38 @@ def order_pdf(order_id):
 @app.route('/approve_list')
 @login_required
 def approve_list():
-    if current_user.role not in ['BO', 'Directie', 'Admin']: return redirect(url_for('dashboard'))
-    if current_user.role == 'Directie':
-        orders = Order.query.filter_by(status='Wachten op Directie').all()
-    elif current_user.role == 'BO':
-        sub_ids = [u.id for u in User.query.filter_by(approver_id=current_user.id).all()]
-        orders = Order.query.filter(Order.user_id.in_(sub_ids), Order.status == 'Wachten op BO').all()
-    else:
+    if current_user.role not in ['BO', 'Directie', 'Admin']: 
+        return redirect(url_for('dashboard'))
+
+    if current_user.role == 'Admin':
+        # Admin ziet alles wat actie vereist
         orders = Order.query.filter(Order.status.in_(['Wachten op BO', 'Wachten op Directie'])).all()
+    
+    elif current_user.role == 'BO':
+        # Bert ziet enkel bonnen van mensen waar hij de directe goedkeurder van is
+        orders = Order.query.join(User, Order.user_id == User.id)\
+                            .filter(User.approver_id == current_user.id, Order.status == 'Wachten op BO').all()
+    
+    elif current_user.role == 'Directie':
+        # Koen ziet bonnen van mensen die Bert als goedkeurder hebben, EN Bert heeft Koen als goedkeurder
+        # Of bonnen die rechtstreeks aan hem zijn toegewezen
+        
+        # 1. Haal alle mensen op die Koen als directe goedkeurder hebben (bijv. Bert)
+        sub_direct = User.query.filter_by(approver_id=current_user.id).all()
+        sub_direct_ids = [u.id for u in sub_direct]
+        
+        # 2. Haal alle mensen op die deze 'sub-directs' als goedkeurder hebben (bijv. Stijn)
+        sub_indirect = User.query.filter(User.approver_id.in_(sub_direct_ids)).all()
+        sub_indirect_ids = [u.id for u in sub_indirect]
+        
+        # Koen ziet: bonnen van zijn directe team + gepushte bonnen van het team daaronder
+        all_relevant_user_ids = sub_direct_ids + sub_indirect_ids
+        
+        orders = Order.query.filter(
+            Order.user_id.in_(all_relevant_user_ids),
+            Order.status == 'Wachten op Directie'
+        ).all()
+
     return render_template('approve_list.html', orders=orders)
 
 @app.route('/my_approvals')
@@ -263,10 +307,25 @@ def approve_order(order_id):
 @login_required
 def escalate_order(order_id):
     order = Order.query.get_or_404(order_id)
+    
+    # Alleen de eigenaar kan pushen als de bon bij de BO (Bert) ligt
     if order.user_id == current_user.id and order.status == 'Wachten op BO':
-        order.status = 'Wachten op Directie'
+        # Zoek wie de goedkeurder van Bert is (bijv. Koen)
+        current_approver = User.query.get(order.user.approver_id)
+        
+        if current_approver and current_approver.approver_id:
+            # We hebben een specifiek directielid gevonden boven de BO
+            next_approver = User.query.get(current_approver.approver_id)
+            order.status = 'Wachten op Directie'
+            # We kunnen hier eventueel order.assigned_approver_id opslaan als we dat veld zouden hebben
+            flash(f'Bon {order.order_number} is gepusht naar {next_approver.username}.', 'success')
+        else:
+            # Als er geen specifieke hogere goedkeurder is, naar algemene directie
+            order.status = 'Wachten op Directie'
+            flash(f'Bon {order.order_number} is gepusht naar de Directie.', 'success')
+            
         db.session.commit()
-        flash(f'Bon {order.order_number} is succesvol gepusht naar de Directie.', 'success')
+        
     return redirect(request.referrer or url_for('my_orders'))
 
 @app.route('/order/reject/<int:order_id>', methods=['POST'])
