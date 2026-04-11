@@ -32,6 +32,18 @@
                         </div>
 
                         <hr>
+                        <h6 class="fw-bold text-primary small"><i class="bi bi-envelope-at me-1"></i>E-mail Notificaties</h6>
+                        <select name="email_notification_freq" class="form-select form-select-sm mb-2">
+                            <option value="Direct">Direct bij elke bon</option>
+                            <option value="Dagelijks">Dagelijkse samenvatting</option>
+                            <option value="Nooit">Geen e-mails</option>
+                        </select>
+                        <div class="input-group input-group-sm mb-3">
+                            <span class="input-group-text">Tijdstip</span>
+                            <input type="time" name="digest_time" class="form-control" value="08:00">
+                        </div>
+
+                        <hr>
                         <label class="small fw-bold text-success"><i class="bi bi-magic me-1"></i>Auto-Approve t/m (€)</label>
                         <input type="number" name="auto_approve_limit" class="form-control form-control-sm mb-2" value="50">
                         
@@ -86,6 +98,9 @@
                                         <small class="d-block"><i class="bi bi-magic text-success"></i> Auto € {{ u.auto_approve_limit }}</small>
                                         <small class="d-block"><i class="bi bi-paperclip"></i> Bijlage > € {{ u.min_attachment_limit }}</small>
                                         <small class="d-block"><i class="bi bi-building"></i> Directie > € {{ u.max_bo_limit }}</small>
+                                        <small class="d-block text-primary mt-1">
+                                            <i class="bi bi-envelope"></i> {{ u.email_notification_freq }} {% if u.email_notification_freq == 'Dagelijks' %}({{ u.digest_time }}){% endif %}
+                                        </small>
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group">
@@ -148,13 +163,29 @@
                                 <option value="Admin" {% if u.role == 'Admin' %}selected{% endif %}>Admin</option>
                             </select>
                         </div>
+
+                        <div class="col-12"><hr></div>
+                        <h6 class="fw-bold text-primary mb-0"><i class="bi bi-envelope-at me-2"></i>E-mail Notificaties</h6>
+                        <div class="col-md-7">
+                            <label class="small fw-bold text-muted">Frequentie</label>
+                            <select name="email_notification_freq" class="form-select">
+                                <option value="Direct" {% if u.email_notification_freq == 'Direct' %}selected{% endif %}>Direct bij elke bon</option>
+                                <option value="Dagelijks" {% if u.email_notification_freq == 'Dagelijks' %}selected{% endif %}>Dagelijkse samenvatting</option>
+                                <option value="Nooit" {% if u.email_notification_freq == 'Nooit' %}selected{% endif %}>Geen e-mails</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="small fw-bold text-muted">Tijdstip (bij dagelijks)</label>
+                            <input type="time" name="digest_time" class="form-control" value="{{ u.digest_time or '08:00' }}">
+                        </div>
+
+                        <div class="col-12"><hr></div>
                         <div class="col-md-12">
                             <label class="small fw-bold text-muted">Nieuw Wachtwoord (leeg laten om te behouden)</label>
                             <input type="password" name="password" class="form-control" placeholder="******">
                         </div>
                         
-                        <hr>
-                        <h6 class="fw-bold text-primary">Financiële Limieten</h6>
+                        <h6 class="fw-bold text-primary mb-0">Financiële Limieten</h6>
                         <div class="col-md-4">
                             <label class="small fw-bold text-success">Auto-Goedkeuring (€)</label>
                             <input type="number" name="auto_approve_limit" class="form-control" value="{{ u.auto_approve_limit }}">

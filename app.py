@@ -326,6 +326,8 @@ def edit_user(user_id):
         u.auto_approve_limit = float(request.form.get('auto_approve_limit') or 0)
         u.min_attachment_limit = float(request.form.get('min_attachment_limit') or 0)
         u.max_bo_limit = float(request.form.get('max_bo_limit') or 0)
+        u.email_notification_freq = request.form.get('email_notification_freq')
+        u.digest_time = request.form.get('digest_time')
         
         if request.form.get('password'):
             u.password = request.form.get('password')
