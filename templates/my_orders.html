@@ -38,7 +38,7 @@
                             <td class="text-end text-nowrap">
                                 {% if o.status == 'Wachten op BO' %}
                                 <form action="{{ url_for('escalate_order', order_id=o.id) }}" method="POST" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-warning shadow-sm me-1" title="Push naar Directie bij afwezigheid van je BO" onclick="return confirm('Weet je zeker dat je deze bon direct naar de directie wilt sturen? Gebruik dit alleen bij afwezigheid van je leidinggevende.');">
+                                    <button type="submit" class="btn btn-sm btn-warning shadow-sm me-1" title="Push naar Directie bij afwezigheid van je diensthoofd (BO)" onclick="return confirm('Weet je zeker dat je deze bon direct naar de directie wilt sturen? Gebruik dit alleen bij afwezigheid van je leidinggevende.');">
                                         <i class="bi bi-rocket-takeoff"></i> Push
                                     </button>
                                 </form>
