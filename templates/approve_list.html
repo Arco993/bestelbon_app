@@ -12,7 +12,7 @@
                     <tbody>
                         {% for o in orders %}
                         <tr>
-                            <td><div class="fw-bold">{{ o.user.username }}</div><div class="small text-muted">{{ o.user.department }}</div></td>
+                            <td><div class="fw-bold">{{ o.user.username }}</div><div class="small text-muted">{{ o.user.department.name if o.user.department else 'Geen afdeling' }}</div></td>
                             <td><span class="badge bg-light text-dark border">{{ o.order_number }}</span></td>
                             <td>{{ o.supplier.name }}</td>
                             <td class="text-end fw-bold text-primary">€ {{ "%.2f"|format(o.total_amount) }}</td>

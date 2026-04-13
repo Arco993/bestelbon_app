@@ -24,7 +24,7 @@
                             <td class="small text-muted">{{ o.created_at.strftime('%d-%m-%Y') }}</td>
                             <td>
                                 <strong>{{ o.user.username }}</strong><br>
-                                <span class="small text-muted">{{ o.user.department_code }}</span>
+                                <span class="text-muted small">{{ o.user.department.name if o.user.department else 'Geen afdeling' }}</span>
                             </td>
                             <td>{{ o.supplier.name }}</td>
                             <td class="text-end fw-bold">€ {{ "%.2f"|format(o.total_amount) }}</td>

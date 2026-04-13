@@ -95,9 +95,14 @@
             <div class="card shadow-sm mb-4 border-0">
                 <div class="card-header bg-dark text-white fw-bold">Digitale Validatie</div>
                 <div class="card-body bg-light">
-                    <div class="mb-3 p-3 border-start border-4 {% if order.bo_approval_code %}border-success bg-white shadow-sm{% else %}border-secondary{% endif %}">
+                    
+                    <div class="mb-3 p-3 border-start border-4 {% if order.bo_approval_code == 'AFGEWEZEN' %}border-danger bg-white shadow-sm{% elif order.bo_approval_code %}border-success bg-white shadow-sm{% else %}border-secondary{% endif %}">
                         <small class="text-muted d-block small fw-bold mb-1">Diensthoofd (BO):</small>
-                        {% if order.bo_approval_code %}
+                        {% if order.bo_approval_code == 'AFGEWEZEN' %}
+                            <strong class="text-danger small"><i class="bi bi-x-circle-fill me-1"></i> AFGEWEZEN</strong><br>
+                            <span class="small fw-bold">{{ order.bo_name }}</span><br>
+                            <span class="small text-muted"><i class="bi bi-calendar3 me-1"></i> {{ order.bo_approval_date.strftime('%d-%m-%Y om %H:%M') }}</span>
+                        {% elif order.bo_approval_code %}
                             <strong class="text-success small"><i class="bi bi-check-circle-fill me-1"></i> GEVALIDEERD</strong><br>
                             <span class="small fw-bold">{{ order.bo_name }}</span><br>
                             <span class="small text-muted"><i class="bi bi-calendar3 me-1"></i> {{ order.bo_approval_date.strftime('%d-%m-%Y om %H:%M') }}</span><br>
@@ -107,9 +112,13 @@
                         {% endif %}
                     </div>
                     
-                    <div class="p-3 border-start border-4 {% if order.dir_approval_code %}border-success bg-white shadow-sm{% else %}border-secondary{% endif %}">
+                    <div class="p-3 border-start border-4 {% if order.dir_approval_code == 'AFGEWEZEN' %}border-danger bg-white shadow-sm{% elif order.dir_approval_code %}border-success bg-white shadow-sm{% else %}border-secondary{% endif %}">
                         <small class="text-muted d-block small fw-bold mb-1">Directie:</small>
-                        {% if order.dir_approval_code %}
+                        {% if order.dir_approval_code == 'AFGEWEZEN' %}
+                            <strong class="text-danger small"><i class="bi bi-x-circle-fill me-1"></i> AFGEWEZEN</strong><br>
+                            <span class="small fw-bold">{{ order.dir_name }}</span><br>
+                            <span class="small text-muted"><i class="bi bi-calendar3 me-1"></i> {{ order.dir_approval_date.strftime('%d-%m-%Y om %H:%M') }}</span>
+                        {% elif order.dir_approval_code %}
                             <strong class="text-success small"><i class="bi bi-check-circle-fill me-1"></i> GEVALIDEERD</strong><br>
                             <span class="small fw-bold">{{ order.dir_name }}</span><br>
                             <span class="small text-muted"><i class="bi bi-calendar3 me-1"></i> {{ order.dir_approval_date.strftime('%d-%m-%Y om %H:%M') }}</span><br>
@@ -118,6 +127,7 @@
                             <span class="text-muted small fst-italic">Nog niet behandeld</span>
                         {% endif %}
                     </div>
+
                 </div>
             </div>
 

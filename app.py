@@ -404,7 +404,20 @@ def escalate_order(order_id):
 @login_required
 def reject_order(order_id):
     order = Order.query.get_or_404(order_id)
-    order.status, order.rejection_reason = 'Afgewezen', request.form.get('reason')
+    order.status = 'Afgewezen'
+    order.rejection_reason = request.form.get('reason')
+    
+    # NIEUW: Registreer de naam van de afwijzer zodat hij in de historiek verschijnt
+    now = datetime.now()
+    if current_user.role == 'BO':
+        order.bo_name = current_user.username
+        order.bo_approval_date = now
+        order.bo_approval_code = 'AFGEWEZEN'
+    elif current_user.role in ['Directie', 'Admin']:
+        order.dir_name = current_user.username
+        order.dir_approval_date = now
+        order.dir_approval_code = 'AFGEWEZEN'
+        
     db.session.commit()
     return redirect(url_for('approve_list'))
 
