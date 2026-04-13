@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container pb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-dark">
+            <i class="bi bi-collection-fill me-2 text-primary"></i>
+            Afdelingsarchief: {{ current_user.department.name }}
+        </h2>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4 bg-light">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('department_archive') }}" class="row g-3">
+                <div class="col-md-6">
+                    <label class="small fw-bold">Leverancier</label>
+                    <input type="text" name="supplier" class="form-control" placeholder="Zoek op naam..." value="{{ q_supplier }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="small fw-bold">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Alle Statussen</option>
+                        <option value="Goedgekeurd" {% if q_status == 'Goedgekeurd' %}selected{% endif %}>Goedgekeurd</option>
+                        <option value="Afgewezen" {% if q_status == 'Afgewezen' %}selected{% endif %}>Afgewezen</option>
+                        <option value="Wachten op BO" {% if q_status == 'Wachten op BO' %}selected{% endif %}>Wachten op BO</option>
+                        <option value="Wachten op Directie" {% if q_status == 'Wachten op Directie' %}selected{% endif %}>Wachten op Directie</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">Filteren</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Datum</th>
+                            <th>Aanvrager</th>
+                            <th>Leverancier</th>
+                            <th class="text-end">Bedrag</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-end">Actie</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in orders %}
+                        <tr>
+                            <td class="small text-muted">{{ o.created_at.strftime('%d-%m-%Y') }}</td>
+                            <td>
+                                <strong>{{ o.user.username }}</strong>
+                            </td>
+                            <td>{{ o.supplier.name }}</td>
+                            <td class="text-end fw-bold">€ {{ "%.2f"|format(o.total_amount) }}</td>
+                            <td class="text-center">
+                                <span class="badge {% if o.status == 'Goedgekeurd' %}bg-success{% elif o.status == 'Afgewezen' %}bg-danger{% else %}bg-warning text-dark{% endif %} px-3">{{ o.status }}</span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('order_detail', order_id=o.id) }}" class="btn btn-sm btn-outline-primary px-3">Bekijken</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">Geen bonnen gevonden binnen deze filters.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

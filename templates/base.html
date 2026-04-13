@@ -20,13 +20,20 @@
             {% if current_user.is_authenticated %}
             <div class="d-flex flex-wrap justify-content-center gap-2 flex-grow-1 px-3">
                 <a href="{{ url_for('my_orders') }}" class="btn btn-brand-cyan">Mijn Bonnen</a>
+                
                 {% if current_user.role in ['BO', 'Directie', 'Admin'] %}
                     <a href="{{ url_for('approve_list') }}" class="btn btn-brand-green">Beoordelen</a>
                     <a href="{{ url_for('my_approvals') }}" class="btn btn-brand-pink">Historiek</a>
                 {% endif %}
+                
                 {% if current_user.role in ['Directie', 'Admin'] %}
                     <a href="{{ url_for('all_orders') }}" class="btn btn-brand-blue">Archief</a>
                 {% endif %}
+                
+                {% if current_user.role == 'BO' %}
+                    <a href="{{ url_for('department_archive') }}" class="btn btn-brand-blue">Afd. Archief</a>
+                {% endif %}
+                
                 {% if current_user.role == 'Admin' %}
                     <a href="{{ url_for('setup') }}" class="btn btn-brand-orange">Setup</a>
                 {% endif %}

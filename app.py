@@ -550,6 +550,36 @@ def all_orders():
     query = Order.query.join(User)
     return render_template('all_orders.html', orders=query.order_by(Order.created_at.desc()).all())
 
+@app.route('/department/archive')
+@login_required
+def department_archive():
+    # Alleen toegankelijk voor BO (en Admin/Directie)
+    if current_user.role not in ['BO', 'Admin', 'Directie']:
+        return redirect(url_for('dashboard'))
+
+    # Haal de filters op uit de URL
+    q_supplier = request.args.get('supplier', '')
+    q_status = request.args.get('status', '')
+
+    # Begin met alle bonnen van de eigen afdeling
+    query = Order.query.join(User).filter(User.department_id == current_user.department_id)
+
+    # Filter op leverancier indien ingevuld
+    if q_supplier:
+        query = query.join(Supplier).filter(Supplier.name.ilike(f'%{q_supplier}%'))
+
+    # Filter op status indien ingevuld
+    if q_status:
+        query = query.filter(Order.status == q_status)
+
+    # Sorteer op nieuwste eerst
+    orders = query.order_by(Order.created_at.desc()).all()
+
+    return render_template('department_archive.html', 
+                           orders=orders, 
+                           q_supplier=q_supplier, 
+                           q_status=q_status)
+
 @app.route('/search_supplier')
 def search_supplier():
     q = request.args.get('q', '').lower()
