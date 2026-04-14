@@ -534,7 +534,7 @@ def add_user():
         role=request.form.get('role'), department_id=int(dept_id) if dept_id else None,
         min_attachment_limit=float(request.form.get('min_attachment_limit') or 500),
         max_bo_limit=float(request.form.get('max_bo_limit') or 1000),
-        auto_approve_limit=float(request.form.get('auto_approve_limit') or 50),
+        auto_approve_limit=float(request.form.get('auto_approve_limit') or 0),
         approver_id=int(request.form.get('approver_id')) if request.form.get('approver_id') else None
     )
     db.session.add(u)
