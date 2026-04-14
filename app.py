@@ -7,6 +7,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from flask_mail import Mail, Message
 from models import db, User, Order, OrderLine, Supplier, Department, Attachment  # Attachment toegevoegd
 from sqlalchemy import func
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -90,9 +91,32 @@ def login():
         flash('Foutieve inloggegevens.', 'danger')
     return render_template('login.html')
 
+def auto_escalate_stale_orders():
+    # 1. Bepaal de grens (bijv. 7 dagen geleden)
+    grens_datum = datetime.utcnow() - timedelta(days=5)
+    
+    # 2. Zoek alle bonnen die bij de BO hangen én ouder zijn dan 7 dagen
+    stale_orders = Order.query.filter(
+        Order.status == 'Wachten op BO',
+        Order.created_at <= grens_datum
+    ).all()
+    
+    # 3. Pas ze allemaal aan
+    if stale_orders:
+        for order in stale_orders:
+            order.status = 'Wachten op Directie'
+            # Optioneel: we zetten een stempel zodat we weten dat het de computer was!
+            order.bo_approval_code = 'AUTO_PUSH' 
+            
+        # Sla de wijzigingen op in de database
+        db.session.commit()
+
 @app.route('/dashboard')
 @login_required
 def dashboard(): 
+    # NIEUW: Automatische controle en push van oude bonnen
+    auto_escalate_stale_orders()
+    
     my_orders_count = Order.query.filter_by(user_id=current_user.id).count()
     my_total_spent = db.session.query(func.sum(Order.total_amount)).filter(
         Order.user_id == current_user.id,
