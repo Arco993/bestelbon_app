@@ -156,9 +156,30 @@
             </div>
             {% endif %}
             
-            <a href="{{ url_for('order_pdf', order_id=order.id) }}" target="_blank" class="btn btn-dark w-100 shadow-sm mt-2">
-                <i class="bi bi-file-earmark-pdf-fill me-2 text-danger"></i> Officiële PDF Genereren
-            </a>
+            <hr class="mt-4 mb-3">
+            <h6 class="text-muted small fw-bold text-uppercase">Verzenden & Exporteren</h6>
+
+            {% if order.status == 'Goedgekeurd' %}
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('order_pdf', order_id=order.id) }}" target="_blank" class="btn btn-dark shadow-sm">
+                        <i class="bi bi-file-earmark-pdf-fill text-danger me-2"></i> 1. PDF Downloaden
+                    </a>
+                    <a href="mailto:{{ order.supplier.email if order.supplier.email else '' }}?subject=Bestelbon {{ order.order_number }} - Stichting M.M. Delacroix&body=Beste {{ order.supplier.name }},%0D%0A%0D%0AHierbij plaatsen wij graag een bestelling conform de bijgevoegde bestelbon met referentie {{ order.order_number }}.%0D%0A%0D%0AMet vriendelijke groeten,%0D%0A{{ current_user.username }}%0D%0AStichting M.M. Delacroix" 
+                       class="btn btn-primary fw-bold shadow-sm"
+                       {% if not order.supplier.email %}onclick="alert('Let op: Er is geen e-mailadres bekend van deze leverancier. Je moet het adres straks zelf nog even invullen in Outlook.');"{% endif %}>
+                        <i class="bi bi-envelope-plus me-2"></i> 2. Open Outlook
+                    </a>
+                </div>
+            {% else %}
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('order_pdf', order_id=order.id) }}" target="_blank" class="btn btn-dark shadow-sm">
+                        <i class="bi bi-file-earmark-pdf-fill text-danger me-2"></i> Officiële PDF Genereren
+                    </a>
+                    <button class="btn btn-secondary shadow-sm" disabled title="De bon moet eerst volledig goedgekeurd zijn om te mailen">
+                        <i class="bi bi-envelope-x me-2"></i> Mail naar Leverancier
+                    </button>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

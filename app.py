@@ -17,7 +17,8 @@ instance_path = os.path.join(basedir, 'instance')
 os.makedirs(instance_path, exist_ok=True)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(instance_path, 'bestelbonnen.db')
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'supergeheim-delacroix')
+# AANGEPAST: Veilige SECRET_KEY configuratie voor lokale én online (Render) werking
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'tijdelijke-lokale-sleutel-123')
 
 # Mail instellingen
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -169,13 +170,20 @@ def new_order():
             flash('Leverancier is verplicht!', 'danger')
             return render_template('new_order.html', form_data=form_data, next_ref=gen_ref)
 
-        supplier = Supplier.query.filter_by(name=s_name).first() or Supplier(
-            name=s_name, street=request.form.get('street'), house_number=request.form.get('house_number'), 
-            zip_code=request.form.get('zip_code'), city=request.form.get('city'), vat_number=request.form.get('supplier_vat')
-        )
-        if not supplier.id: 
+        # AANGEPAST: Update altijd de gegevens, ook als de leverancier al bestond!
+        supplier = Supplier.query.filter_by(name=s_name).first()
+        if not supplier:
+            supplier = Supplier(name=s_name)
             db.session.add(supplier)
-            db.session.flush()
+            
+        supplier.street = request.form.get('street')
+        supplier.house_number = request.form.get('house_number')
+        supplier.zip_code = request.form.get('zip_code')
+        supplier.city = request.form.get('city')
+        supplier.vat_number = request.form.get('supplier_vat')
+        supplier.email = request.form.get('supplier_email')
+        
+        db.session.flush()
 
         descs = request.form.getlist('desc[]')
         qtys = request.form.getlist('qty[]')
@@ -183,7 +191,6 @@ def new_order():
         total_inc = sum([(float(qtys[i] or 0) * float(prices[i] or 0)) for i in range(len(descs))])
 
         # --- BULLETPROOF BIJLAGEN LOGICA ---
-        # We checken alle mogelijke manieren waarop browsers meerdere bestanden doorsturen
         files = request.files.getlist('attachments[]')
         if not files or all(f.filename == '' for f in files):
             files = request.files.getlist('attachments')
@@ -270,15 +277,21 @@ def edit_order(order_id):
         return redirect(url_for('my_orders'))
 
     if request.method == 'POST':
-        # 1. Update Leverancier
+        # 1. Update Leverancier (AANGEPAST: Update altijd de gegevens, ook als de leverancier al bestond!)
         s_name = request.form.get('supplier_name')
-        supplier = Supplier.query.filter_by(name=s_name).first() or Supplier(
-            name=s_name, street=request.form.get('street'), house_number=request.form.get('house_number'), 
-            zip_code=request.form.get('zip_code'), city=request.form.get('city'), vat_number=request.form.get('supplier_vat')
-        )
-        if not supplier.id: 
+        supplier = Supplier.query.filter_by(name=s_name).first()
+        if not supplier:
+            supplier = Supplier(name=s_name)
             db.session.add(supplier)
-            db.session.flush()
+            
+        supplier.street = request.form.get('street')
+        supplier.house_number = request.form.get('house_number')
+        supplier.zip_code = request.form.get('zip_code')
+        supplier.city = request.form.get('city')
+        supplier.vat_number = request.form.get('supplier_vat')
+        supplier.email = request.form.get('supplier_email')
+        
+        db.session.flush()
         
         order.supplier_id = supplier.id
         order.reference = request.form.get('reference')
@@ -608,7 +621,16 @@ def department_archive():
 def search_supplier():
     q = request.args.get('q', '').lower()
     suppliers = Supplier.query.filter(Supplier.name.ilike(f'%{q}%')).all()
-    return jsonify([{'name': s.name, 'city': s.city, 'vat': s.vat_number} for s in suppliers])
+    # AANGEPAST: We sturen nu ook het adres en de email mee naar javascript voor auto-fill
+    return jsonify([{
+        'name': s.name, 
+        'street': s.street,
+        'num': s.house_number,
+        'zip': s.zip_code,
+        'city': s.city, 
+        'vat': s.vat_number,
+        'email': getattr(s, 'email', '')
+    } for s in suppliers])
 
 if __name__ == '__main__':
     ensure_admin()

@@ -47,6 +47,7 @@ class Supplier(db.Model):
     city = db.Column(db.String(100))
     country = db.Column(db.String(100), default="België")
     vat_number = db.Column(db.String(20))
+    email = db.Column(db.String(120), nullable=True)
 
 # NIEUW: Tabel voor meerdere bijlagen
 class Attachment(db.Model):
