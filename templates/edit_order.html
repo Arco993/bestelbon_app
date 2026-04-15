@@ -27,7 +27,7 @@
                             <strong><i class="bi bi-paperclip"></i> Reeds toegevoegd:</strong><br>
                             {% if order.attachment_filename %} <span class="text-muted">- Document (Oude stijl)</span><br> {% endif %}
                             {% for att in order.attachments %}
-                                <span class="text-muted">- {{ att.filename.split('_')[-1] }}</span><br>
+                                <span class="text-muted">- {{ att.filename.split('_', 2)[-1] }}</span><br>
                             {% endfor %}
                         </div>
                         {% endif %}
