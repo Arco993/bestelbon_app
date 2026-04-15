@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block content %}
 <div class="container pb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -17,17 +16,11 @@
                         <input type="text" name="generated_order_number" class="form-control mb-3 bg-light fw-bold" value="{{ next_ref }}" readonly>
                         
                         <label class="small fw-bold">Referentie / Project</label>
-                        <textarea name="reference" 
-                                  class="form-control mb-3 {% if not form_data.get('reference') and request.method == 'POST' %}is-invalid{% endif %}" 
-                                  rows="2" placeholder="Waarvoor is deze bestelling?">{{ form_data.get('reference', '') }}</textarea>
+                        <textarea name="reference" class="form-control mb-3 {% if not form_data.get('reference') and request.method == 'POST' %}is-invalid{% endif %}" rows="2" placeholder="Waarvoor is deze bestelling?">{{ form_data.get('reference', '') }}</textarea>
                         
                         <label class="small fw-bold text-muted mb-1"><i class="bi bi-paperclip me-1"></i>Bijlage(n) / Offerte(s) (Optioneel)</label>
                         <input class="form-control form-control-sm mb-1" type="file" id="fileUpload" name="attachments" accept=".pdf,.png,.jpg,.jpeg" multiple>
                         <div id="fileListPreview" class="small text-primary mb-3 fw-bold fst-italic"></div>
-                        
-                        <div class="alert alert-info py-2 small mb-0 mt-3">
-                            <i class="bi bi-info-circle me-1"></i> Goedkeuring vereist door: <strong>{{ approver_name }}</strong>
-                        </div>
                     </div>
                 </div>
 
@@ -35,21 +28,18 @@
                     <div class="card-header bg-primary text-white fw-bold"><i class="bi bi-bell-fill me-2"></i>E-mail Notificaties</div>
                     <div class="card-body">
                         <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" name="notify_on_update" id="notifySwitch" 
-                                   {% if form_data.get('notify_on_update') == 'on' or not form_data %}checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" name="notify_on_update" id="notifySwitch" {% if form_data.get('notify_on_update') == 'on' or not form_data %}checked{% endif %}>
                             <label class="form-check-label fw-bold small" for="notifySwitch">Houd mij op de hoogte via mail</label>
                         </div>
                         
                         <div id="notificationOptions">
                             <label class="small fw-bold text-muted d-block mb-2">Wanneer wil je een mail?</label>
                             <div class="form-check small mb-1">
-                                <input class="form-check-input" type="radio" name="notification_type" id="notifyFinal" value="Final" 
-                                       {% if form_data.get('notification_type') == 'Final' or not form_data %}checked{% endif %}>
+                                <input class="form-check-input" type="radio" name="notification_type" id="notifyFinal" value="Final" {% if form_data.get('notification_type') == 'Final' or not form_data %}checked{% endif %}>
                                 <label class="form-check-label" for="notifyFinal">Alleen bij volledige goedkeuring</label>
                             </div>
                             <div class="form-check small">
-                                <input class="form-check-input" type="radio" name="notification_type" id="notifyStep" value="Every Step"
-                                       {% if form_data.get('notification_type') == 'Every Step' %}checked{% endif %}>
+                                <input class="form-check-input" type="radio" name="notification_type" id="notifyStep" value="Every Step" {% if form_data.get('notification_type') == 'Every Step' %}checked{% endif %}>
                                 <label class="form-check-label" for="notifyStep">Bij elke stap (BO & Directie)</label>
                             </div>
                         </div>
@@ -61,9 +51,7 @@
                     <div class="card-body">
                         <label class="small fw-bold">Bedrijfsnaam <span class="text-danger">*</span></label>
                         <div class="input-group mb-2">
-                            <input type="text" id="supplierSearch" name="supplier_name" 
-                                   class="form-control {% if not form_data.get('supplier_name') and request.method == 'POST' %}is-invalid{% endif %}" 
-                                   placeholder="Zoek of typ naam..." autocomplete="off" value="{{ form_data.get('supplier_name', '') }}" required>
+                            <input type="text" id="supplierSearch" name="supplier_name" class="form-control {% if not form_data.get('supplier_name') and request.method == 'POST' %}is-invalid{% endif %}" placeholder="Zoek of typ naam..." autocomplete="off" value="{{ form_data.get('supplier_name', '') }}" required>
                             <button class="btn btn-outline-secondary" type="button" id="searchBtn"><i class="bi bi-search"></i></button>
                         </div>
                         <ul id="searchResults" class="list-group position-absolute w-100 shadow-sm" style="z-index: 1000; display: none;"></ul>
@@ -109,7 +97,6 @@
                                 </thead>
                                 <tbody>
                                     {% set descs = form_data.getlist('desc[]') if form_data else [] %}
-                                    
                                     {% if descs %}
                                         {% for i in range(descs|length) %}
                                             <tr class="item-row">
@@ -195,8 +182,7 @@
 
     function calcTotal() {
         let total = 0;
-        const rows = document.querySelectorAll('#linesTable tbody tr');
-        rows.forEach(row => {
+        document.querySelectorAll('#linesTable tbody tr').forEach(row => {
             const qty = parseFloat(row.querySelector('.qty').value) || 0;
             const price = parseFloat(row.querySelector('.price').value) || 0;
             total += (qty * price);
@@ -227,7 +213,6 @@
         }
     }
 
-    // Leverancier Zoekfunctie (AJAX)
     const supplierInput = document.getElementById('supplierSearch');
     const searchResults = document.getElementById('searchResults');
 
@@ -245,7 +230,7 @@
                 if (data.length > 0) {
                     data.forEach(s => {
                         const li = document.createElement('li');
-                        li.classList.add('list-group-item', 'list-group-item-action');
+                        li.className = 'list-group-item list-group-item-action';
                         li.style.cursor = 'pointer';
                         li.innerHTML = `<strong>${s.name}</strong> <small class="text-muted">(${s.city})</small>`;
                         li.onclick = function() {
@@ -268,12 +253,9 @@
     });
 
     document.addEventListener('click', function(e) {
-        if (e.target !== supplierInput) {
-            searchResults.style.display = 'none';
-        }
+        if (e.target !== supplierInput) searchResults.style.display = 'none';
     });
 
-    // Bereken het totaal direct bij het inladen
     document.addEventListener('DOMContentLoaded', calcTotal);
 </script>
 {% endblock %}

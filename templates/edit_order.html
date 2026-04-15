@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block content %}
 <div class="container pb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -74,7 +73,11 @@
                             <div class="col-4"><input type="text" id="zip_code" name="zip_code" class="form-control form-control-sm" placeholder="Postcode" value="{{ order.supplier.zip_code or '' }}"></div>
                             <div class="col-8"><input type="text" id="city" name="city" class="form-control form-control-sm" placeholder="Gemeente" value="{{ order.supplier.city or '' }}"></div>
                         </div>
-                        <input type="text" id="supplier_vat" name="supplier_vat" class="form-control form-control-sm" placeholder="BTW Nummer (BE0...)" value="{{ order.supplier.vat_number or '' }}">
+                        
+                        <div class="row g-2 mb-2">
+                            <div class="col-12"><input type="email" id="supplier_email" name="supplier_email" class="form-control form-control-sm mb-2" placeholder="E-mailadres (Optioneel)" value="{{ order.supplier.email or '' }}"></div>
+                            <div class="col-12"><input type="text" id="supplier_vat" name="supplier_vat" class="form-control form-control-sm" placeholder="BTW Nummer (BE0...)" value="{{ order.supplier.vat_number or '' }}"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -157,8 +160,7 @@
 
     function calcTotal() {
         let total = 0;
-        const rows = document.querySelectorAll('#linesTable tbody tr');
-        rows.forEach(row => {
+        document.querySelectorAll('#linesTable tbody tr').forEach(row => {
             const qty = parseFloat(row.querySelector('.qty').value) || 0;
             const price = parseFloat(row.querySelector('.price').value) || 0;
             total += (qty * price);
@@ -206,7 +208,7 @@
                 if (data.length > 0) {
                     data.forEach(s => {
                         const li = document.createElement('li');
-                        li.classList.add('list-group-item', 'list-group-item-action');
+                        li.className = 'list-group-item list-group-item-action';
                         li.style.cursor = 'pointer';
                         li.innerHTML = `<strong>${s.name}</strong> <small class="text-muted">(${s.city})</small>`;
                         li.onclick = function() {
@@ -216,6 +218,7 @@
                             document.getElementById('zip_code').value = s.zip || '';
                             document.getElementById('city').value = s.city || '';
                             document.getElementById('supplier_vat').value = s.vat || '';
+                            document.getElementById('supplier_email').value = s.email || '';
                             searchResults.style.display = 'none';
                         };
                         searchResults.appendChild(li);
@@ -228,9 +231,7 @@
     });
 
     document.addEventListener('click', function(e) {
-        if (e.target !== supplierInput) {
-            searchResults.style.display = 'none';
-        }
+        if (e.target !== supplierInput) searchResults.style.display = 'none';
     });
 
     document.addEventListener('DOMContentLoaded', calcTotal);

@@ -8,85 +8,41 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        /* Basisinstellingen */
         body { background: white; color: #333; font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; margin: 0; padding: 0; }
         
-        /* Container die flexibel meegroeit */
         .a4-container { 
-            width: 100%; 
-            max-width: 800px; 
-            margin: 0 auto; 
-            padding: 40px; 
-            position: relative; 
-            display: flex;
-            flex-direction: column;
-            min-height: 297mm; /* Minimale hoogte van een A4 */
+            width: 100%; max-width: 800px; margin: 0 auto; padding: 40px; 
+            position: relative; display: flex; flex-direction: column; min-height: 297mm;
         }
         
         .text-brand-blue { color: #003366 !important; }
         .text-brand-orange { color: #f29200 !important; }
         .border-brand-orange { border-color: #f29200 !important; }
-
         .logo-print { max-height: 65px; object-fit: contain; }
 
-        /* Watermerk altijd op de voorgrond */
         .watermark {
-            position: fixed; /* Fixed zorgt dat het op elke pagina verschijnt indien nodig */
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 100px;
-            color: rgba(220, 53, 69, 0.15); 
-            font-weight: 900;
-            text-transform: uppercase;
-            white-space: nowrap;
-            z-index: 1000;
-            pointer-events: none;
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 100px; color: rgba(220, 53, 69, 0.15); font-weight: 900;
+            text-transform: uppercase; white-space: nowrap; z-index: 1000; pointer-events: none;
         }
 
         .content-layer { flex-grow: 1; position: relative; z-index: 1; }
-        
-        /* Tabel styling */
         .table-custom th { background-color: #003366 !important; color: white !important; border-bottom: 3px solid #f29200 !important; padding: 10px; }
         .table-custom td { border-bottom: 1px solid #eee; padding: 10px; }
         
-        /* Validatie stempels */
-        .stamp-section { margin-top: 30px; page-break-inside: avoid; } /* Voorkomt dat stempels in tweeën worden gesneden */
+        .stamp-section { margin-top: 30px; page-break-inside: avoid; }
         .stamp-box { border: 2px solid #8dc63f; color: #8dc63f; border-radius: 8px; padding: 12px; display: inline-block; min-width: 200px; text-align: center; background-color: #fbfcfa; margin-bottom: 10px; }
         
-        /* Footer styling - niet meer absolute */
         .pdf-footer {
-            margin-top: 50px;
-            padding-top: 15px;
-            border-top: 1px solid #ddd;
-            font-size: 9pt;
-            color: #777;
-            page-break-after: always; /* Zorgt voor nette afsluiting */
+            margin-top: 50px; padding-top: 15px; border-top: 1px solid #ddd;
+            font-size: 9pt; color: #777; page-break-after: always;
         }
 
-        /* Tweede pagina indicator voor in de browser */
-        .page-info { font-style: italic; font-size: 9pt; color: #999; margin-bottom: 10px; }
-
-       @media print {
-            /* Dit verwijdert de browser-standaard kop- en voetteksten */
-            @page { 
-                size: A4; 
-                margin: 0mm; /* Forceert marges naar 0, wat browser-headers wist */
-            }
-            
-            body { 
-                padding: 10mm; /* Geeft de inhoud zelf weer een veilige marge op het papier */
-                -webkit-print-color-adjust: exact; 
-                print-color-adjust: exact; 
-            }
-            
+        @media print {
+            @page { size: A4; margin: 0mm; }
+            body { padding: 10mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
-            .a4-container { 
-                padding: 0; 
-                width: 100%; 
-                min-height: auto; 
-                box-shadow: none;
-            }
+            .a4-container { padding: 0; width: 100%; min-height: auto; box-shadow: none; }
             .watermark { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
     </style>
@@ -104,7 +60,6 @@
     </div>
 
     <div class="a4-container" id="bonContent">
-        
         {% if order.status != 'Goedgekeurd' %}
         <div class="watermark">
             {% if order.status == 'Concept' %} CONCEPT {% elif order.status == 'Afgewezen' %} AFGEWEZEN {% else %} NIET GEVALIDEERD {% endif %}
@@ -178,10 +133,12 @@
                     </tr>
                 </tfoot>
             </table>
-<div class="mb-5 p-3 rounded" style="background-color: #fff9f0; border: 1px solid #f29200;">
-    <i class="bi bi-info-circle-fill text-brand-orange me-2"></i>
-    <strong>Facturatie-instructie:</strong> Gelieve het bestelbonnummer <span class="text-brand-blue">{{ order.order_number }}</span> steeds duidelijk te vermelden op uw factuur. Facturen mogen verzonden worden naar <a href="mailto:facturatieSMMD@admeta.be" class="text-decoration-none text-brand-blue">facturatieSMMD@admeta.be</a>.
-</div>
+
+            <div class="mb-5 p-3 rounded" style="background-color: #fff9f0; border: 1px solid #f29200;">
+                <i class="bi bi-info-circle-fill text-brand-orange me-2"></i>
+                <strong>Facturatie-instructie:</strong> Gelieve het bestelbonnummer <span class="text-brand-blue">{{ order.order_number }}</span> steeds duidelijk te vermelden op uw factuur. Facturen mogen verzonden worden naar <a href="mailto:facturatieSMMD@admeta.be" class="text-decoration-none text-brand-blue">facturatieSMMD@admeta.be</a>.
+            </div>
+
             {% if order.status == 'Goedgekeurd' %}
             <div class="stamp-section">
                 <h6 class="text-muted fw-bold text-uppercase small mb-3">Digitale Validatie:</h6>

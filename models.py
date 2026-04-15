@@ -8,11 +8,8 @@ class Department(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     code = db.Column(db.String(10), unique=True, nullable=False)
-    
-    # Het directielid dat verantwoordelijk is voor deze afdeling
     director_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     
-    # Relaties
     members = db.relationship('User', backref='department', lazy=True, foreign_keys='User.department_id')
     director = db.relationship('User', foreign_keys=[director_id])
 
@@ -49,7 +46,6 @@ class Supplier(db.Model):
     vat_number = db.Column(db.String(20))
     email = db.Column(db.String(120), nullable=True)
 
-# NIEUW: Tabel voor meerdere bijlagen
 class Attachment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_id = db.Column(db.Integer, db.ForeignKey('order.id'))
@@ -64,10 +60,7 @@ class Order(db.Model):
     total_amount = db.Column(db.Float, default=0.0)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
-    
-    # Legacy: voor de oude bonnen met 1 bijlage
     attachment_filename = db.Column(db.String(255))
-    
     rejection_reason = db.Column(db.Text)
     notify_on_update = db.Column(db.Boolean, default=True)
     notification_type = db.Column(db.String(20), default='Final')
@@ -82,7 +75,6 @@ class Order(db.Model):
 
     supplier = db.relationship('Supplier', backref='orders', lazy=True)
     lines = db.relationship('OrderLine', backref='order', lazy=True)
-    # NIEUW: Koppeling met de Attachment tabel
     attachments = db.relationship('Attachment', backref='order', lazy=True)
 
 class OrderLine(db.Model):
